@@ -256,7 +256,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       pControl->SetMouseOverWhenDisabled(true);
     });
 
-    pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetMouseEventsWhenDisabled(false);
+    /*pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetMouseEventsWhenDisabled(false);*/
   };
 }
 
@@ -465,11 +465,11 @@ void NeuralAmpModeler::OnParamChangeUI(int paramIdx, EParamSource source)
 
     switch (paramIdx)
     {
-      case kNoiseGateActive: pGraphics->GetControlWithParamIdx(kNoiseGateThreshold)->SetDisabled(!active); break;
-      case kEQActive:
+      /*case kNoiseGateActive: pGraphics->GetControlWithParamIdx(kNoiseGateThreshold)->SetDisabled(!active); break;*/
+      /*case kEQActive:
         pGraphics->ForControlInGroup("EQ_KNOBS", [active](IControl* pControl) { pControl->SetDisabled(!active); });
-        break;
-      case kIRToggle: pGraphics->GetControlWithTag(kCtrlTagIRFileBrowser)->SetDisabled(!active);
+        break;*/
+      /*case kIRToggle: pGraphics->GetControlWithTag(kCtrlTagIRFileBrowser)->SetDisabled(!active);*/
       default: break;
     }
   }
@@ -481,7 +481,7 @@ bool NeuralAmpModeler::OnMessage(int msgTag, int ctrlTag, int dataSize, const vo
   {
     case kMsgTagClearModel: mShouldRemoveModel = true; return true;
     case kMsgTagClearIR: mShouldRemoveIR = true; return true;
-    case kMsgTagHighlightColor:
+    /*case kMsgTagHighlightColor:
     {
       mHighLightColor.Set((const char*)pData);
 
@@ -502,7 +502,7 @@ bool NeuralAmpModeler::OnMessage(int msgTag, int ctrlTag, int dataSize, const vo
       }
 
       return true;
-    }
+    }*/
     default: return false;
   }
 }
