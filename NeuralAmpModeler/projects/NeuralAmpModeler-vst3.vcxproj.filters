@@ -460,6 +460,8 @@
       <Filter>dsp\ResamplingContainer\Dependencies\WDL</Filter>
     </ClInclude>
     <ClInclude Include="..\ToneStack.h" />
+    <ClInclude Include="..\mmfat_nam.h" />
+    <ClInclude Include="..\mmtight_nam.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="resources">
@@ -556,5 +558,8 @@
     <None Include="..\config\NeuralAmpModeler-mac.xcconfig">
       <Filter>config</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\resources\NeuralAmpModeler.ico" />
   </ItemGroup>
 </Project>

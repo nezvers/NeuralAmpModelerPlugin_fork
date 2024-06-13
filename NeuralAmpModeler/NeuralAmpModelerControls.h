@@ -363,7 +363,7 @@ public:
         WDL_String fileName, directory;
         fileName.Set(reinterpret_cast<const char*>(pData));
         directory.Set(reinterpret_cast<const char*>(pData));
-        directory.remove_filepart(true);
+        //directory.remove_filepart(true);
 
         ClearPathList();
         AddPath(directory.Get(), "");

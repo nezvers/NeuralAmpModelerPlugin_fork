@@ -242,7 +242,7 @@ private:
   void _NormalizeModelOutput(iplug::sample** buffer, const size_t numChannels, const size_t numFrames);
   // Loads a NAM model and stores it to mStagedNAM
   // Returns an empty string on success, or an error message on failure.
-  std::string _StageModel(const WDL_String& dspFile);
+  std::string _StageModel(const char* jsonStr);
   // Loads an IR and stores it to mStagedIR.
   // Return status code so that error messages can be relayed if
   // it wasn't successful.

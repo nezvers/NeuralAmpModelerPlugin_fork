@@ -16,6 +16,10 @@
 
 #include "NeuralAmpModelerControls.h"
 
+#include "mmfat_nam.h"
+#include <NeuralAmpModelerCore/NAM/lstm.h>
+#include <NeuralAmpModelerCore/NAM/wavenet.h>
+
 using namespace iplug;
 using namespace igraphics;
 
@@ -62,6 +66,51 @@ EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char
 #else
   return pGraphics->ShowMessageBox(str, caption, type);
 #endif
+}
+
+std::vector<float> GetWeights(nlohmann::json const& j)
+{
+  if (j.find("weights") != j.end())
+  {
+    auto weight_list = j["weights"];
+    std::vector<float> weights;
+    for (auto it = weight_list.begin(); it != weight_list.end(); ++it)
+      weights.push_back(*it);
+    return weights;
+  }
+  else
+    throw std::runtime_error("Corrupted model file is missing weights.");
+}
+
+std::unique_ptr<nam::DSP> get_dsp_json(const char* jsonStr)
+{
+  nlohmann::json j = nlohmann::json::parse(jsonStr);
+  nam::verify_config_version(j["version"]);
+
+  auto architecture = j["architecture"];
+  std::vector<float> weights = GetWeights(j);
+
+  // Assign values to config
+  nam::dspData config;
+  config.version = j["version"];
+  config.architecture = j["architecture"];
+  config.config = j["config"];
+  config.metadata = j["metadata"];
+  config.weights = weights;
+  if (j.find("sample_rate") != j.end())
+    config.expected_sample_rate = j["sample_rate"];
+  else
+  {
+    config.expected_sample_rate = -1.0;
+  }
+
+  /*Copy to a new dsp_config object for GetDSP below,
+   since not sure if weights actually get modified as being non-const references on some
+   model constructors inside GetDSP(dsp_config& conf).
+   We need to return unmodified version of dsp_config via returnedConfig.*/
+  nam::dspData conf = config;
+
+  return get_dsp(conf);
 }
 
 
@@ -164,13 +213,16 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
     // Misc Areas
     const auto helpButtonArea = mainArea.GetFromTRHC(50, 50).GetCentredInside(20, 20);
+    
+    // ##########
+    //_StageModel(mmfat_nam);
 
     // Model loader button
     auto loadModelCompletionHandler = [&](const WDL_String& fileName, const WDL_String& path) {
       if (fileName.GetLength())
       {
         // Sets mNAMPath and mStagedNAM
-        const std::string msg = _StageModel(fileName);
+        const std::string msg = _StageModel(mmfat_nam);
         // TODO error messages like the IR loader.
         if (msg.size())
         {
@@ -178,7 +230,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
           ss << "Failed to load NAM model. Message:\n\n" << msg;
           _ShowMessageBox(GetUI(), ss.str().c_str(), "Failed to load model!", kMB_OK);
         }
-        std::cout << "Loaded: " << fileName.Get() << std::endl;
+        std::cout << "Loaded: " << mmfat_nam << std::endl;
       }
     };
 
@@ -211,10 +263,10 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     const std::string defaultNamFileString = "Select model...";
     const std::string defaultIRString = "Select IR...";
 #endif
-    /*pGraphics->AttachControl(new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(),
+    pGraphics->AttachControl(new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(),
                                                        "nam", loadModelCompletionHandler, style, fileSVG, crossSVG,
                                                        leftArrowSVG, rightArrowSVG, fileBackgroundBitmap),
-                             kCtrlTagModelFileBrowser);*/
+                             kCtrlTagModelFileBrowser);
     pGraphics->AttachControl(new ISVGSwitchControl(irSwitchArea, {irIconOffSVG, irIconOnSVG}, kIRToggle));
     /*pGraphics->AttachControl(
       new NAMFileBrowserControl(irArea, kMsgTagClearIR, defaultIRString.c_str(), "wav", loadIRCompletionHandler, style,
@@ -375,8 +427,9 @@ void NeuralAmpModeler::OnIdle()
 
   if (mNewModelLoadedInDSP)
   {
-    if (auto* pGraphics = GetUI())
-      pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetDisabled(!mModel->HasLoudness());
+    if (auto* pGraphics = GetUI()) {
+      //pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetDisabled(!mModel->HasLoudness());
+    }
 
     mNewModelLoadedInDSP = false;
   }
@@ -416,7 +469,7 @@ int NeuralAmpModeler::UnserializeState(const IByteChunk& chunk, int startPos)
   startPos = chunk.GetStr(mIRPath, startPos);
   int retcode = UnserializeParams(chunk, startPos);
   if (mNAMPath.GetLength())
-    _StageModel(mNAMPath);
+    _StageModel(mNAMPath.Get());
   if (mIRPath.GetLength())
     _StageIR(mIRPath);
   return retcode;
@@ -431,19 +484,22 @@ void NeuralAmpModeler::OnUIOpen()
     SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
     // If it's not loaded yet, then mark as failed.
     // If it's yet to be loaded, then the completion handler will set us straight once it runs.
-    if (mModel == nullptr && mStagedModel == nullptr)
+    if (mModel == nullptr && mStagedModel == nullptr) {
       SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadFailed);
+    }
   }
 
   if (mIRPath.GetLength())
   {
     SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadedIR, mIRPath.GetLength(), mIRPath.Get());
-    if (mIR == nullptr && mStagedIR == nullptr)
+    if (mIR == nullptr && mStagedIR == nullptr) {
       SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadFailed);
+    }
   }
 
-  if (mModel != nullptr)
+  /*if (mModel != nullptr) {
     GetUI()->GetControlWithTag(kCtrlTagOutNorm)->SetDisabled(!mModel->HasLoudness());
+  }*/
 }
 
 void NeuralAmpModeler::OnParamChange(int paramIdx)
@@ -632,17 +688,23 @@ void NeuralAmpModeler::_ResetModelAndIR(const double sampleRate, const int maxBl
   }
 }
 
-std::string NeuralAmpModeler::_StageModel(const WDL_String& modelPath)
+std::string NeuralAmpModeler::_StageModel(const char* jsonStr)
 {
   WDL_String previousNAMPath = mNAMPath;
   try
   {
-    auto dspPath = std::filesystem::u8path(modelPath.Get());
-    std::unique_ptr<nam::DSP> model = nam::get_dsp(dspPath);
+    //auto dspPath = std::filesystem::u8path(modelPath.Get());
+    //std::unique_ptr<nam::DSP> model = nam::get_dsp(dspPath);
+    
+    std::unique_ptr<nam::DSP> model = get_dsp_json(jsonStr);
+    char modelName[] = "Modern Metal Fat";
+
+
+
     std::unique_ptr<ResamplingNAM> temp = std::make_unique<ResamplingNAM>(std::move(model), GetSampleRate());
     temp->Reset(GetSampleRate(), GetBlockSize());
     mStagedModel = std::move(temp);
-    mNAMPath = modelPath;
+    mNAMPath = WDL_String(modelName, sizeof(modelName));
     SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
   }
   catch (std::runtime_error& e)
@@ -812,3 +874,4 @@ void NeuralAmpModeler::_UpdateMeters(sample** inputPointer, sample** outputPoint
   mInputSender.ProcessBlock(inputPointer, (int)nFrames, kCtrlTagInputMeter, nChansHack);
   mOutputSender.ProcessBlock(outputPointer, (int)nFrames, kCtrlTagOutputMeter, nChansHack);
 }
+
