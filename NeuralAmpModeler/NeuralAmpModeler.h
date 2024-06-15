@@ -262,6 +262,7 @@ private:
   // Return status code so that error messages can be relayed if
   // it wasn't successful.
   dsp::wav::LoadReturnCode _StageIR(const WDL_String& irPath);
+  dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIRCustom(bool enabled);
 
   bool _HaveModel() const { return this->mModel != nullptr; };
   // Prepare the input & output buffers
@@ -322,7 +323,7 @@ private:
   // Path to model's config.json or model.nam
   //WDL_String mNAMPath;
   // Path to IR (.wav file)
-  WDL_String mIRPath;
+  //WDL_String mIRPath;
 
   WDL_String mHighLightColor{PluginColors::NAM_THEMECOLOR.ToColorCode()};
 

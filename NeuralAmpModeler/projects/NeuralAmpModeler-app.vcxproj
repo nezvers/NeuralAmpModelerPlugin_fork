@@ -341,8 +341,10 @@
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\util.h" />
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\version.h" />
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\wavenet.h" />
+    <ClInclude Include="..\rectal57.h" />
     <ClInclude Include="..\resources\resource.h" />
     <ClInclude Include="..\ToneStack.h" />
+    <ClInclude Include="..\wav_parser.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\iPlug2\Dependencies\IPlug\RTAudio\include\asio.cpp" />
@@ -404,7 +406,9 @@
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\lstm.cpp" />
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\util.cpp" />
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\wavenet.cpp" />
+    <ClCompile Include="..\rectal57.cpp" />
     <ClCompile Include="..\ToneStack.cpp" />
+    <ClCompile Include="..\wav_parser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\main.rc" />

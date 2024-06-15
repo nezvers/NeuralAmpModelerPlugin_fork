@@ -20,8 +20,11 @@
 #include <NeuralAmpModelerCore/NAM/lstm.h>
 #include <NeuralAmpModelerCore/NAM/wavenet.h>
 
+#include "wav_parser.h"
 #include "mmfat_nam.h"
 #include "mmtight_nam.h"
+#include "rectal57.h"
+#include "wav_parser.h"
 const char* nam_list[] = {mmfat_nam, mmtight_nam};
 // <----
 
@@ -154,6 +157,55 @@ int NeuralAmpModeler::_StageModelCustom(int modelIndex)
     return 1;
   }
   return 0;
+}
+
+dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIRCustom(bool enabled)
+{
+  if (!enabled)
+  {
+    return dsp::wav::LoadReturnCode::ERROR_OTHER;
+  }
+  // FIXME it'd be better for the path to be "staged" as well. Just in case the
+  // path and the model got caught on opposite sides of the fence...
+  const double sampleRate = GetSampleRate();
+  dsp::wav::LoadReturnCode wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
+  try
+  {
+    if (mStagedIR != nullptr)
+    {
+      wavState = dsp::wav::LoadReturnCode::SUCCESS;
+    }
+    else {
+      WAVFile_t wavFileData = WAV_ParseFileData(RECTAL57);
+      std::vector<float> mRawAudio = std::vector<float>(wavFileData.data, wavFileData.data + wavFileData.data_length);
+      dsp::ImpulseResponse::IRData irData = {mRawAudio, wavFileData.header.sample_rate};
+
+      mStagedIR = std::make_unique<dsp::ImpulseResponse>(irData, sampleRate); // <- Localize
+      wavState = mStagedIR->GetWavState();
+      std::cerr << "Successful load IR:" << std::endl;
+    }
+  }
+  catch (std::runtime_error& e)
+  {
+    wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
+    std::cerr << "Caught unhandled exception while attempting to load IR:" << std::endl;
+    std::cerr << e.what() << std::endl;
+  }
+
+  if (wavState == dsp::wav::LoadReturnCode::SUCCESS)
+  {
+    //SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadedIR, mIRPath.GetLength(), mIRPath.Get());
+  }
+  else
+  {
+    if (mStagedIR != nullptr)
+    {
+      mStagedIR = nullptr;
+    }
+    //SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadFailed);
+  }
+
+  return wavState;
 }
 
 NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
@@ -445,7 +497,7 @@ bool NeuralAmpModeler::SerializeState(IByteChunk& chunk) const
   // Model directory (don't serialize the model itself; we'll just load it again
   // when we unserialize)
   //chunk.PutStr(mNAMPath.Get());
-  chunk.PutStr(mIRPath.Get());
+  //chunk.PutStr(mIRPath.Get());
   return SerializeParams(chunk);
 }
 
@@ -465,12 +517,12 @@ int NeuralAmpModeler::UnserializeState(const IByteChunk& chunk, int startPos)
 
   // Current version loading:
   //startPos = chunk.GetStr(mNAMPath, startPos);
-  startPos = chunk.GetStr(mIRPath, startPos);
+  //startPos = chunk.GetStr(mIRPath, startPos);
   int retcode = UnserializeParams(chunk, startPos);
   //if (mNAMPath.GetLength())
   //  _StageModel(mNAMPath);
-  if (mIRPath.GetLength())
-    _StageIR(mIRPath);
+  //if (mIRPath.GetLength())
+    //_StageIR(mIRPath);
   return retcode;
 }
 
@@ -523,7 +575,11 @@ void NeuralAmpModeler::OnParamChangeUI(int paramIdx, EParamSource source)
       /*case kEQActive:
         pGraphics->ForControlInGroup("EQ_KNOBS", [active](IControl* pControl) { pControl->SetDisabled(!active); });
         break;*/
-      //case kIRToggle: pGraphics->GetControlWithTag(kCtrlTagIRFileBrowser)->SetDisabled(!active); break;
+      case kIRToggle:
+      {
+        _StageIRCustom((int)active);
+        break;
+      }
       case kModelIndex:
       {
         IVStyle styleSelected = style;
@@ -619,7 +675,7 @@ void NeuralAmpModeler::_ApplyDSPStaging()
   if (mShouldRemoveIR)
   {
     mIR = nullptr;
-    mIRPath.Set("");
+    //mIRPath.Set("");
     mShouldRemoveIR = false;
   }
   // Move things from staged to live
@@ -749,7 +805,7 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIR(const WDL_String& irPath)
 {
   // FIXME it'd be better for the path to be "staged" as well. Just in case the
   // path and the model got caught on opposite sides of the fence...
-  WDL_String previousIRPath = mIRPath;
+  //WDL_String previousIRPath = mIRPath;
   const double sampleRate = GetSampleRate();
   dsp::wav::LoadReturnCode wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
   try
@@ -767,8 +823,8 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIR(const WDL_String& irPath)
 
   if (wavState == dsp::wav::LoadReturnCode::SUCCESS)
   {
-    mIRPath = irPath;
-    SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadedIR, mIRPath.GetLength(), mIRPath.Get());
+    //mIRPath = irPath;
+    //SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadedIR, mIRPath.GetLength(), mIRPath.Get());
   }
   else
   {
@@ -776,8 +832,8 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIR(const WDL_String& irPath)
     {
       mStagedIR = nullptr;
     }
-    mIRPath = previousIRPath;
-    SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadFailed);
+    //mIRPath = previousIRPath;
+    //SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadFailed);
   }
 
   return wavState;

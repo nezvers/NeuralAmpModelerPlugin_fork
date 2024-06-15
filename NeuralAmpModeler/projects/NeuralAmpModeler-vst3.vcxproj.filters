@@ -171,6 +171,8 @@
       <Filter>dsp</Filter>
     </ClCompile>
     <ClCompile Include="..\ToneStack.cpp" />
+    <ClCompile Include="..\wav_parser.cpp" />
+    <ClCompile Include="..\rectal57.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../config.h" />
@@ -460,6 +462,8 @@
       <Filter>dsp\ResamplingContainer\Dependencies\WDL</Filter>
     </ClInclude>
     <ClInclude Include="..\ToneStack.h" />
+    <ClInclude Include="..\wav_parser.h" />
+    <ClInclude Include="..\rectal57.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="resources">
@@ -556,5 +560,8 @@
     <None Include="..\config\NeuralAmpModeler-mac.xcconfig">
       <Filter>config</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\resources\NeuralAmpModeler.ico" />
   </ItemGroup>
 </Project>
