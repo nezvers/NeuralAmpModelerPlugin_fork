@@ -63,6 +63,8 @@ enum ECtrlTags
   kCtrlTagOutputMeter,
   kCtrlTagAboutBox,
   kCtrlTagOutNorm,
+  kCtrlTagFat,
+  kCtrlTagTight,
   kNumCtrlTags
 };
 
@@ -76,6 +78,8 @@ enum EMsgTags
   kMsgTagLoadFailed,
   kMsgTagLoadedModel,
   kMsgTagLoadedIR,
+  kMsgTagMMFat,
+  kMsgTagMMTight,
   kNumMsgTags
 };
 
@@ -316,7 +320,7 @@ private:
   //  recursive_linear_filter::LowPass mLowPass;
 
   // Path to model's config.json or model.nam
-  WDL_String mNAMPath;
+  //WDL_String mNAMPath;
   // Path to IR (.wav file)
   WDL_String mIRPath;
 
