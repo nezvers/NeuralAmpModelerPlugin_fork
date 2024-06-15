@@ -1,15 +1,15 @@
-#define PLUG_NAME "NeuralAmpModeler"
-#define PLUG_MFR "Steven Atkinson"
+#define PLUG_NAME "Modern Metal"
+#define PLUG_MFR "NamePending"
 #define PLUG_VERSION_HEX 0x00000709
-#define PLUG_VERSION_STR "0.7.9"
+#define PLUG_VERSION_STR "0.0.0"
 #define PLUG_UNIQUE_ID '1YEo'
-#define PLUG_MFR_ID 'SDAa'
-#define PLUG_URL_STR "https://github.com/sdatkinson/NeuralAmpModelerPlugin"
+#define PLUG_MFR_ID 'NaPd'
+#define PLUG_URL_STR "https://github.com/nezvers"
 #define PLUG_EMAIL_STR "spam@me.com"
-#define PLUG_COPYRIGHT_STR "Copyright 2022 Steven Atkinson"
+#define PLUG_COPYRIGHT_STR "Copyright 2024 NamePending"
 #define PLUG_CLASS_NAME NeuralAmpModeler
-#define BUNDLE_NAME "NeuralAmpModeler"
-#define BUNDLE_MFR "StevenAtkinson"
+#define BUNDLE_NAME "Modern Metal"
+#define BUNDLE_MFR "NamePending"
 #define BUNDLE_DOMAIN "com"
 
 #define SHARED_RESOURCES_SUBPATH "NeuralAmpModeler"
@@ -87,6 +87,7 @@
 #define METERBACKGROUND_FN "MeterBackground.png"
 #define METERBACKGROUND2X_FN "MeterBackground@2x.png"
 #define METERBACKGROUND3X_FN "MeterBackground@3x.png"
+#define RECTAL57_FN "Rectal57.wav"
 
 // Issue 291
 // On the macOS standalone, we might not have permissions to traverse the file directory, so we have the app ask the

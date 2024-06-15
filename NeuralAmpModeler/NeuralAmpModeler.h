@@ -26,6 +26,14 @@ public:
   }
 };
 
+enum EModels
+{
+  kMMFat,
+  kMMTight,
+  kModelCount,
+};
+#define MODEL_NAMES "Modern Metal Fat", "Modern Metal Tight"
+
 enum EParams
 {
   // These need to be the first ones because I use their indices to place
@@ -41,6 +49,7 @@ enum EParams
   kEQActive,
   kOutNorm,
   kIRToggle,
+  kModelIndex,
   kNumParams
 };
 
@@ -69,6 +78,7 @@ enum EMsgTags
   kMsgTagLoadedIR,
   kNumMsgTags
 };
+
 
 // Get the sample rate of a NAM model.
 // Sometimes, the model doesn't know its own sample rate; this wrapper guesses 48k based on the way that most
@@ -243,6 +253,7 @@ private:
   // Loads a NAM model and stores it to mStagedNAM
   // Returns an empty string on success, or an error message on failure.
   std::string _StageModel(const WDL_String& dspFile);
+  int _StageModelCustom(int modelIndex);
   // Loads an IR and stores it to mStagedIR.
   // Return status code so that error messages can be relayed if
   // it wasn't successful.

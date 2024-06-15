@@ -16,6 +16,15 @@
 
 #include "NeuralAmpModelerControls.h"
 
+// <---- _modified_
+#include <NeuralAmpModelerCore/NAM/lstm.h>
+#include <NeuralAmpModelerCore/NAM/wavenet.h>
+
+#include "mmfat_nam.h"
+#include "mmtight_nam.h"
+const char* nam_list[] = {mmfat_nam, mmtight_nam};
+// <----
+
 using namespace iplug;
 using namespace igraphics;
 
@@ -64,6 +73,76 @@ EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char
 #endif
 }
 
+std::vector<float> GetWeights(nlohmann::json const& j)
+{
+  if (j.find("weights") != j.end())
+  {
+    auto weight_list = j["weights"];
+    std::vector<float> weights;
+    for (auto it = weight_list.begin(); it != weight_list.end(); ++it)
+      weights.push_back(*it);
+    return weights;
+  }
+  else
+    throw std::runtime_error("Corrupted model file is missing weights.");
+}
+
+std::unique_ptr<nam::DSP> get_dsp_json(const char* jsonStr)
+{
+  nlohmann::json j = nlohmann::json::parse(jsonStr);
+  nam::verify_config_version(j["version"]);
+
+  auto architecture = j["architecture"];
+  std::vector<float> weights = GetWeights(j);
+
+  // Assign values to config
+  nam::dspData config;
+  config.version = j["version"];
+  config.architecture = j["architecture"];
+  config.config = j["config"];
+  config.metadata = j["metadata"];
+  config.weights = weights;
+  if (j.find("sample_rate") != j.end())
+    config.expected_sample_rate = j["sample_rate"];
+  else
+  {
+    config.expected_sample_rate = -1.0;
+  }
+
+  /*Copy to a new dsp_config object for GetDSP below,
+   since not sure if weights actually get modified as being non-const references on some
+   model constructors inside GetDSP(dsp_config& conf).
+   We need to return unmodified version of dsp_config via returnedConfig.*/
+  nam::dspData conf = config;
+
+  return get_dsp(conf);
+}
+
+int NeuralAmpModeler::_StageModelCustom(int modelIndex)
+{
+  try
+  {
+    
+    std::unique_ptr<nam::DSP> model = get_dsp_json(nam_list[modelIndex]);
+    std::unique_ptr<ResamplingNAM> temp = std::make_unique<ResamplingNAM>(std::move(model), GetSampleRate());
+    temp->Reset(GetSampleRate(), GetBlockSize());
+    mStagedModel = std::move(temp);
+    SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
+  }
+  catch (std::runtime_error& e)
+  {
+    SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadFailed);
+
+    if (mStagedModel != nullptr)
+    {
+      mStagedModel = nullptr;
+    }
+    std::cerr << "Failed to read DSP module" << std::endl;
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+  return 0;
+}
 
 NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPresets))
@@ -80,6 +159,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
   GetParam(kEQActive)->InitBool("ToneStack", true);
   GetParam(kOutNorm)->InitBool("OutNorm", true);
   GetParam(kIRToggle)->InitBool("IRToggle", true);
+  GetParam(kModelIndex)->InitEnum("Model Index", 0, kModelCount, "", 0, "", MODEL_NAMES);
 
   mNoiseGateTrigger.AddListener(&mNoiseGateGain);
 
@@ -392,7 +472,7 @@ bool NeuralAmpModeler::SerializeState(IByteChunk& chunk) const
   chunk.PutStr(version.Get());
   // Model directory (don't serialize the model itself; we'll just load it again
   // when we unserialize)
-  chunk.PutStr(mNAMPath.Get());
+  //chunk.PutStr(mNAMPath.Get());
   chunk.PutStr(mIRPath.Get());
   return SerializeParams(chunk);
 }
@@ -415,8 +495,8 @@ int NeuralAmpModeler::UnserializeState(const IByteChunk& chunk, int startPos)
   startPos = chunk.GetStr(mNAMPath, startPos);
   startPos = chunk.GetStr(mIRPath, startPos);
   int retcode = UnserializeParams(chunk, startPos);
-  if (mNAMPath.GetLength())
-    _StageModel(mNAMPath);
+  //if (mNAMPath.GetLength())
+  //  _StageModel(mNAMPath);
   if (mIRPath.GetLength())
     _StageIR(mIRPath);
   return retcode;
@@ -453,6 +533,7 @@ void NeuralAmpModeler::OnParamChange(int paramIdx)
     case kToneBass: mToneStack->SetParam("bass", GetParam(paramIdx)->Value()); break;
     case kToneMid: mToneStack->SetParam("middle", GetParam(paramIdx)->Value()); break;
     case kToneTreble: mToneStack->SetParam("treble", GetParam(paramIdx)->Value()); break;
+    case kModelIndex: _StageModelCustom((int)GetParam(kModelIndex)->Value()); break;
     default: break;
   }
 }
@@ -637,8 +718,9 @@ std::string NeuralAmpModeler::_StageModel(const WDL_String& modelPath)
   WDL_String previousNAMPath = mNAMPath;
   try
   {
-    auto dspPath = std::filesystem::u8path(modelPath.Get());
-    std::unique_ptr<nam::DSP> model = nam::get_dsp(dspPath);
+    //auto dspPath = std::filesystem::u8path(modelPath.Get());
+    //std::unique_ptr<nam::DSP> model = nam::get_dsp(dspPath);
+    std::unique_ptr<nam::DSP> model = get_dsp_json(mmtight_nam);
     std::unique_ptr<ResamplingNAM> temp = std::make_unique<ResamplingNAM>(std::move(model), GetSampleRate());
     temp->Reset(GetSampleRate(), GetBlockSize());
     mStagedModel = std::move(temp);
@@ -671,7 +753,7 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIR(const WDL_String& irPath)
   try
   {
     auto irPathU8 = std::filesystem::u8path(irPath.Get());
-    mStagedIR = std::make_unique<dsp::ImpulseResponse>(irPathU8.string().c_str(), sampleRate);
+    mStagedIR = std::make_unique<dsp::ImpulseResponse>(irPathU8.string().c_str(), sampleRate); // <- Localize
     wavState = mStagedIR->GetWavState();
   }
   catch (std::runtime_error& e)
