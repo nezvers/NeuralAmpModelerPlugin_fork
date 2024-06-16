@@ -35,7 +35,7 @@ const double kDCBlockerFrequency = 5.0;
 // Styles
 const IVColorSpec colorSpec{
   DEFAULT_BGCOLOR, // Background
-  PluginColors::NAM_THEMECOLOR, // Foreground
+  PluginColors::NAM_THEMECOLOR.WithContrast(-0.15f), // Foreground
   PluginColors::NAM_THEMECOLOR.WithOpacity(0.8f), // Pressed
   PluginColors::NAM_THEMECOLOR.WithOpacity(0.4f), // Frame
   PluginColors::MOUSEOVER, // Highlight
