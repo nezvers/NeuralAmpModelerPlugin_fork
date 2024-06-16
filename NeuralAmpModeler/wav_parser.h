@@ -2,6 +2,7 @@
 #define WAVE_H
 #include <stddef.h>
 #include <stdint.h>
+#include <vector>
 
 // Normalized WAV file header structure
 typedef struct WAVHeader_t
@@ -24,6 +25,7 @@ typedef struct WAVHeader_t
   uint32_t subchunk_size;
 
   // PCM = 1, values other than 1 indicate some form of compression
+  // IEEE = 3, 32 bit
   uint16_t audio_format;
 
   // mono = 1, stereo = 2, etc.
@@ -66,5 +68,6 @@ typedef struct WAVFile_t
 // Parse the header of WAV file and return WAVFile structure with header and
 // pointer to data
 WAVFile WAV_ParseFileData(uint8_t const* data);
+std::vector<float> WAV_ExtractSamples(const WAVFile wavFile);
 
 #endif

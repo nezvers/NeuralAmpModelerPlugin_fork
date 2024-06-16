@@ -74,3 +74,73 @@ WAVFile WAV_ParseFileData(uint8_t const* data)
 
   return file;
 }
+
+int _ReadSigned24BitInt(const std::uint8_t* dataPtr)
+{
+  // Combine the three bytes into a single integer using bit shifting and
+  // masking. This works by isolating each byte using a bit mask (0xff) and then
+  // shifting the byte to the correct position in the final integer.
+  int value = dataPtr[0] | (dataPtr[1] << 8) | (dataPtr[2] << 16);
+
+  // The value is stored in two's complement format, so if the most significant
+  // bit (the 24th bit) is set, then the value is negative. In this case, we
+  // need to extend the sign bit to get the correct negative value.
+  if (value & (1 << 23))
+  {
+    value |= ~((1 << 24) - 1);
+  }
+  return value;
+}
+
+std::vector<float> WAV_ExtractSamples(const WAVFile wavFile) 
+{
+  std::vector<float> rawAudio = std::vector<float>();
+  if (wavFile.header.audio_format == 3) {
+    // IEEE 32-bit
+    int bytePerSample = 4;
+    int sampleCount = wavFile.data_length / bytePerSample;
+    rawAudio.resize(sampleCount);
+    for (auto i = 0; i < sampleCount; i++)
+    {
+      rawAudio[i] = (float)(((float*)wavFile.data)[i]);
+    }
+  }
+  else if (wavFile.header.audio_format == 1) {
+    // PCM
+    if (wavFile.header.bits_per_sample == 16) {
+      // 16-bit
+      int sampleCount = wavFile.data_length / 2;
+      rawAudio.resize(sampleCount);
+      
+      // Copy into the return array
+      const float scale = 1.0 / ((double)(1 << 15));
+      for (auto i = 0; i < sampleCount; i++)
+      {
+        rawAudio[i] = scale * (float)(((short*)wavFile.data)[i]); // 2^16
+      }
+    }
+    else if (wavFile.header.bits_per_sample == 24) {
+      // 24-bit
+      int bytePerSample = 3;
+      int sampleCount = wavFile.data_length / bytePerSample;
+
+      // Copy into the return array
+      const float scale = 1.0 / ((double)(1 << 23));
+      rawAudio.resize(sampleCount);
+      for (auto i = 0; i < sampleCount; i++)
+      {
+        rawAudio[i] = scale * ((float)_ReadSigned24BitInt(wavFile.data + i * bytePerSample));
+      }
+    }
+    else if (wavFile.header.bits_per_sample == 32) {
+      int bytePerSample = 4;
+      int sampleCount = wavFile.data_length / bytePerSample;
+      rawAudio.resize(sampleCount);
+      for (auto i = 0; i < sampleCount; i++)
+      {
+        rawAudio[i] = (float)(((float*)wavFile.data)[i]);
+      }
+    }
+  }
+  return rawAudio;
+}

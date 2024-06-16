@@ -12,6 +12,7 @@
 #include "IPlug_include_in_plug_hdr.h"
 #include "ISender.h"
 
+#include "wav_parser.h"
 
 const int kNumPresets = 1;
 // The plugin is mono inside
@@ -324,7 +325,8 @@ private:
   //WDL_String mNAMPath;
   // Path to IR (.wav file)
   //WDL_String mIRPath;
-
+  WAVFile IrWavFileData;
+  std::vector<float> IrRawAudio;
   WDL_String mHighLightColor{PluginColors::NAM_THEMECOLOR.ToColorCode()};
 
   std::unordered_map<std::string, double> mNAMParams = {{"Input", 0.0}, {"Output", 0.0}};

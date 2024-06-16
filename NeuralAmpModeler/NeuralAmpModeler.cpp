@@ -24,7 +24,6 @@
 #include "mmfat_nam.h"
 #include "mmtight_nam.h"
 #include "rectal57.h"
-#include "wav_parser.h"
 const char* nam_list[] = {mmfat_nam, mmtight_nam};
 // <----
 
@@ -167,7 +166,6 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIRCustom(bool enabled)
   }
   // FIXME it'd be better for the path to be "staged" as well. Just in case the
   // path and the model got caught on opposite sides of the fence...
-  const double sampleRate = GetSampleRate();
   dsp::wav::LoadReturnCode wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
   try
   {
@@ -175,11 +173,13 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIRCustom(bool enabled)
     {
       wavState = dsp::wav::LoadReturnCode::SUCCESS;
     }
-    else {
-      WAVFile_t wavFileData = WAV_ParseFileData(RECTAL57);
-      std::vector<float> mRawAudio = std::vector<float>(wavFileData.data, wavFileData.data + wavFileData.data_length);
-      dsp::ImpulseResponse::IRData irData = {mRawAudio, wavFileData.header.sample_rate};
+    else
+    {
+      dsp::ImpulseResponse::IRData irData;
+      irData.mRawAudio = IrRawAudio;
+      irData.mRawAudioSampleRate = IrWavFileData.header.sample_rate;
 
+      const double sampleRate = GetSampleRate();
       mStagedIR = std::make_unique<dsp::ImpulseResponse>(irData, sampleRate); // <- Localize
       wavState = mStagedIR->GetWavState();
       std::cerr << "Successful load IR:" << std::endl;
@@ -211,6 +211,10 @@ dsp::wav::LoadReturnCode NeuralAmpModeler::_StageIRCustom(bool enabled)
 NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
+  IrWavFileData = WAV_ParseFileData(RECTAL57);
+  
+  IrRawAudio = WAV_ExtractSamples(IrWavFileData);
+
   _InitToneStack();
   nam::activations::Activation::enable_fast_tanh();
   GetParam(kInputLevel)->InitGain("Input", 0.0, -20.0, 20.0, 0.1);
@@ -224,6 +228,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
   GetParam(kOutNorm)->InitBool("OutNorm", true);
   GetParam(kIRToggle)->InitBool("IRToggle", true);
   GetParam(kModelIndex)->InitEnum("Model Index", 0, kModelCount, "", 0, "", MODEL_NAMES);
+
 
   mNoiseGateTrigger.AddListener(&mNoiseGateGain);
 
