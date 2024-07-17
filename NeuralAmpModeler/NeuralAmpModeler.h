@@ -51,6 +51,9 @@ enum EParams
   kOutNorm,
   kIRToggle,
   kModelIndex,
+  kPeakTargetDb,
+  kPeakMinDb,
+  kPeakCompensation,
   kNumParams
 };
 
@@ -288,6 +291,9 @@ private:
   void _UpdateMeters(iplug::sample** inputPointer, iplug::sample** outputPointer, const size_t nFrames,
                      const size_t nChansIn, const size_t nChansOut);
 
+  void _UpdateCompensation();
+  void _LearnMaxPeak(iplug::sample** inputs, int nFrames, const size_t nChansIn);
+
   // Member data
 
   // Input arrays to NAM
@@ -328,8 +334,11 @@ private:
   WAVFile IrWavFileData;
   std::vector<float> IrRawAudio;
   WDL_String mHighLightColor{PluginColors::NAM_THEMECOLOR.ToColorCode()};
+  bool mLearnInput = false;
+  double peakMax;
+  
 
-  std::unordered_map<std::string, double> mNAMParams = {{"Input", 0.0}, {"Output", 0.0}};
+  //std::unordered_map<std::string, double> mNAMParams = {{"Input", 0.0}, {"Output", 0.0}};
 
   NAMSender mInputSender, mOutputSender;
 };

@@ -464,6 +464,7 @@
     <ClInclude Include="..\ToneStack.h" />
     <ClInclude Include="..\wav_parser.h" />
     <ClInclude Include="..\rectal57.h" />
+    <ClInclude Include="..\conversion_math.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="resources">

@@ -24,6 +24,7 @@
 #include "mmfat_nam.h"
 #include "mmtight_nam.h"
 #include "rectal57.h"
+#include "conversion_math.h"
 const char* nam_list[] = {mmfat_nam, mmtight_nam};
 // <----
 
@@ -228,9 +229,14 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
   GetParam(kOutNorm)->InitBool("OutNorm", true);
   GetParam(kIRToggle)->InitBool("IRToggle", true);
   GetParam(kModelIndex)->InitEnum("Model Index", 0, kModelCount, "", 0, "", MODEL_NAMES);
+  GetParam(kPeakTargetDb)->InitGain("DI Peak Target", -3.0, -60.0, 0.0, 0.1);
+  GetParam(kPeakMinDb)->InitGain("DI Learn Min", -30.0, -60.0, 0.0, 0.1);
+  GetParam(kPeakCompensation)->InitDouble("DI Compensation", 1.0, 0.0001, 1000.0, 0.1);
 
 
   mNoiseGateTrigger.AddListener(&mNoiseGateGain);
+
+  
 
   mMakeGraphicsFunc = [&]() {
 
@@ -319,6 +325,27 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics->AttachBackground(BACKGROUND_FN);
     pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
     pGraphics->AttachControl(new IVLabelControl(titleArea, "Modern Metal", titleStyle));
+
+
+    // Learn Button
+    std::function<void(IControl*)> ClickCallback = [&](IControl* iControl) {
+      ((IVButtonControl*)iControl)->SetLabelStr("Listening...");
+      mLearnInput = true;
+      GetParam(kPeakCompensation)->Set(1.0);
+      SendParameterValueFromDelegate(kPeakCompensation, 1.0, false);
+      DirtyParametersFromUI();
+      peakMax = 0.0;
+    };
+    std::function<void(IControl*)> TimeoutCallback = [&](IControl* iControl) {
+      ((IVButtonControl*)iControl)->SetLabelStr("Learn");
+      mLearnInput = false;
+      _UpdateCompensation();
+    };
+
+    const auto learnButtonBounds = IRECT(0.0f, 0.0f, 100.0f, 30.0f).GetHShifted(10).GetVShifted(50);
+    pGraphics->AttachControl(new NEZButtonTimer(learnButtonBounds, ClickCallback, TimeoutCallback, 10000, "Learn"));
+    
+    
     pGraphics->AttachControl(new ISVGControl(modelIconArea, modelIconSVG));
 
 #ifdef NAM_PICK_DIRECTORY
@@ -862,6 +889,7 @@ void NeuralAmpModeler::_InitToneStack()
   // If you want to customize the tone stack, then put it here!
   mToneStack = std::make_unique<dsp::tone_stack::BasicNamToneStack>();
 }
+
 void NeuralAmpModeler::_PrepareBuffers(const size_t numChannels, const size_t numFrames)
 {
   const bool updateChannels = numChannels != _GetBufferNumChannels();
@@ -925,15 +953,16 @@ void NeuralAmpModeler::_ProcessInput(iplug::sample** inputs, const size_t nFrame
   for (size_t c = 0; c < nChansIn; c++)
     for (size_t s = 0; s < nFrames; s++)
       if (c == 0)
-        mInputArray[0][s] = gain * inputs[c][s];
+        mInputArray[0][s] = gain * inputs[c][s] * GetParam(kPeakCompensation)->Value();
       else
-        mInputArray[0][s] += gain * inputs[c][s];
+        mInputArray[0][s] += gain * inputs[c][s] * GetParam(kPeakCompensation)->Value();
 }
 
 void NeuralAmpModeler::_ProcessOutput(iplug::sample** inputs, iplug::sample** outputs, const size_t nFrames,
                                       const size_t nChansIn, const size_t nChansOut)
 {
-  const double gain = pow(10.0, GetParam(kOutputLevel)->Value() / 20.0);
+  const double gain = db_to_volume(GetParam(kOutputLevel)->Value()); //pow(10.0, GetParam(kOutputLevel)->Value() / 20.0);
+
   // Assume _PrepareBuffers() was already called
   if (nChansIn != 1)
     throw std::runtime_error("Plugin is supposed to process in mono.");
@@ -956,4 +985,32 @@ void NeuralAmpModeler::_UpdateMeters(sample** inputPointer, sample** outputPoint
   const int nChansHack = 1;
   mInputSender.ProcessBlock(inputPointer, (int)nFrames, kCtrlTagInputMeter, nChansHack);
   mOutputSender.ProcessBlock(outputPointer, (int)nFrames, kCtrlTagOutputMeter, nChansHack);
+  if (mLearnInput) {
+    _LearnMaxPeak(inputPointer, (int)nFrames, nChansHack);
+  }
+}
+
+void NeuralAmpModeler::_UpdateCompensation() {
+  double peakMaxDb = volume_to_db(peakMax);
+  if (peakMaxDb < GetParam(kPeakMinDb)->Value())
+  {
+    GetParam(kPeakCompensation)->Set(1.0);
+    SendParameterValueFromDelegate(kPeakCompensation, 1.0, false);
+    DirtyParametersFromUI();
+    return;
+  }
+  double peakTarget = db_to_volume(GetParam(kPeakTargetDb)->Value());
+  double value = peakTarget / peakMax;
+  GetParam(kPeakCompensation)->Set(value);
+  SendParameterValueFromDelegate(kPeakCompensation, value, false);
+  DirtyParametersFromUI(); // updates the host with the new parameter values
+}
+
+void NeuralAmpModeler::_LearnMaxPeak(iplug::sample** inputs, int nFrames, const size_t nChansIn) {
+  for (auto cin = 0; cin < nChansIn; cin++)  {
+    for (auto s = 0; s < nFrames; s++) {
+      double sIn = std::abs(inputs[cin][s]);
+      peakMax = std::max(peakMax, sIn);
+    }
+  }
 }

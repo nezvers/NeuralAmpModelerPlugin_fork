@@ -9,6 +9,43 @@
 using namespace iplug;
 using namespace igraphics;
 
+class NEZButtonTimer: public IVButtonControl
+{
+public:
+  NEZButtonTimer(const IRECT& bounds, IActionFunction clickCallback = SplashClickActionFunc,
+                 IActionFunction timeoutCallback = SplashClickActionFunc,  
+    uint32_t interval = 1000,
+                 const char* label = "",
+                const IVStyle& style = DEFAULT_STYLE, bool labelInButton = true, bool valueInButton = true,
+                EVShape shape = EVShape::Rectangle)
+  : IVButtonControl(bounds, nullptr, label,
+                      style, labelInButton, valueInButton,
+                      shape)
+  {
+    wait_time = interval;
+    TimeoutCallback = timeoutCallback;
+    ClickCallback = clickCallback;
+
+    ClickEvent = [&](IControl* iControl) {
+      SplashClickActionFunc(this);
+      ClickCallback(this);
+      mTimer = std::unique_ptr<Timer>(Timer::Create(
+        [&](Timer& t) { 
+          TimeoutCallback(this);
+        }, wait_time
+        ));
+    };
+    SetActionFunction(ClickEvent);
+  }
+
+  private:
+  std::function<void(IControl*)> ClickEvent;
+  std::function<void(IControl*)> ClickCallback;
+  std::function<void(IControl*)> TimeoutCallback;
+  std::unique_ptr<Timer> mTimer;
+  uint32_t wait_time;
+};
+
 class NAMSquareButtonControl : public ISVGButtonControl
 {
 public:
@@ -50,7 +87,7 @@ public:
   : IVKnobControl(bounds, paramIdx, label, style, true)
   , IBitmapBase(bitmap)
   {
-    mInnerPointerFrac = 0.55;
+    mInnerPointerFrac = 0.55f;
   }
 
   void OnRescale() override { mBitmap = GetUI()->GetScaledBitmap(mBitmap); }
