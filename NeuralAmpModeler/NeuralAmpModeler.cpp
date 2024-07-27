@@ -553,8 +553,8 @@ int NeuralAmpModeler::UnserializeState(const IByteChunk& chunk, int startPos)
   int retcode = UnserializeParams(chunk, startPos);
   //if (mNAMPath.GetLength())
   //  _StageModel(mNAMPath);
-  //if (mIRPath.GetLength())
-    //_StageIR(mIRPath);
+  if (GetParam(kIRToggle)->Bool())
+    _StageIRCustom((int)true);
   return retcode;
 }
 
