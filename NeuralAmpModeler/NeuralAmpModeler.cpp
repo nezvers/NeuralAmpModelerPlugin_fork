@@ -75,7 +75,7 @@ const IVStyle style =
           DEFAULT_WIDGET_ANGLE};
 
 const IVStyle titleStyle =
-  DEFAULT_STYLE.WithValueText(IText(30, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+  DEFAULT_STYLE.WithValueText(IText(45, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
 
 EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char* str, const char* caption,
                               EMsgBoxType type)
@@ -235,7 +235,6 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
 
   mNoiseGateTrigger.AddListener(&mNoiseGateGain);
-
   
 
   mMakeGraphicsFunc = [&]() {
@@ -260,71 +259,14 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics->LoadFont("Michroma-Regular", MICHROMA_FN);
 
     const auto helpSVG = pGraphics->LoadSVG(HELP_FN);
-    const auto fileSVG = pGraphics->LoadSVG(FILE_FN);
-    const auto crossSVG = pGraphics->LoadSVG(CLOSE_BUTTON_FN);
-    const auto rightArrowSVG = pGraphics->LoadSVG(RIGHT_ARROW_FN);
-    const auto leftArrowSVG = pGraphics->LoadSVG(LEFT_ARROW_FN);
-    const auto modelIconSVG = pGraphics->LoadSVG(MODEL_ICON_FN);
     const auto irIconOnSVG = pGraphics->LoadSVG(IR_ICON_ON_FN);
     const auto irIconOffSVG = pGraphics->LoadSVG(IR_ICON_OFF_FN);
 
     const auto backgroundBitmap = pGraphics->LoadBitmap(BACKGROUND_FN);
-    const auto fileBackgroundBitmap = pGraphics->LoadBitmap(FILEBACKGROUND_FN);
-    const auto linesBitmap = pGraphics->LoadBitmap(LINES_FN);
     const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOBBACKGROUND_FN);
-    const auto switchHandleBitmap = pGraphics->LoadBitmap(SLIDESWITCHHANDLE_FN);
     const auto meterBackgroundBitmap = pGraphics->LoadBitmap(METERBACKGROUND_FN);
 
     const auto b = pGraphics->GetBounds();
-    const auto mainArea = b.GetPadded(-20);
-    const auto contentArea = mainArea.GetPadded(-10);
-    const auto titleHeight = 50.0f;
-    const auto titleArea = contentArea.GetFromTop(titleHeight);
-
-    // Areas for knobs
-    const auto knobsPad = 20.0f;
-    const auto knobsExtraSpaceBelowTitle = 25.0f;
-    const auto knobHeight = 120.f;
-    const auto singleKnobPad = -2.0f;
-    const auto knobsArea = contentArea.GetFromTop(knobHeight)
-                             .GetReducedFromLeft(knobsPad)
-                             .GetReducedFromRight(knobsPad)
-                             .GetVShifted(titleHeight + knobsExtraSpaceBelowTitle);
-    const auto inputKnobArea = knobsArea.GetGridCell(0, kInputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
-    //const auto noiseGateArea = knobsArea.GetGridCell(0, kNoiseGateThreshold, 1, numKnobs).GetPadded(-singleKnobPad);
-    //const auto bassKnobArea = knobsArea.GetGridCell(0, kToneBass, 1, numKnobs).GetPadded(-singleKnobPad);
-    //const auto midKnobArea = knobsArea.GetGridCell(0, kToneMid, 1, numKnobs).GetPadded(-singleKnobPad);
-    //const auto trebleKnobArea = knobsArea.GetGridCell(0, kToneTreble, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto outputKnobArea = knobsArea.GetGridCell(0, kOutputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
-
-    //const auto ngToggleArea = noiseGateArea.GetVShifted(noiseGateArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-    //const auto eqToggleArea = midKnobArea.GetVShifted(midKnobArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-    //const auto outNormToggleArea = outputKnobArea.GetVShifted(midKnobArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-
-
-    // Areas for model and IR
-    const auto fileWidth = 200.0f;
-    const auto fileHeight = 30.0f;
-    const auto irYOffset = 38.0f;
-    const auto modelArea = contentArea.GetFromBottom((2.0f * fileHeight)).GetFromTop(fileHeight).GetMidHPadded(fileWidth).GetVShifted(-1);
-    const auto modelIconArea = modelArea.GetFromLeft(30).GetTranslated(-40, 10);
-    const auto irArea = modelArea.GetVShifted(irYOffset);
-    const auto irSwitchArea = irArea.GetFromLeft(30.0f).GetHShifted(-40.0f).GetScaledAboutCentre(0.6f);
-    
-    
-
-
-    // Areas for meters
-    const auto inputMeterArea = contentArea.GetFromLeft(30).GetHShifted(-20).GetMidVPadded(100).GetVShifted(-25);
-    const auto outputMeterArea = contentArea.GetFromRight(30).GetHShifted(20).GetMidVPadded(100).GetVShifted(-25);
-
-    // Misc Areas
-    const auto helpButtonArea = mainArea.GetFromTRHC(50, 50).GetCentredInside(20, 20);
-
-
-    pGraphics->AttachBackground(BACKGROUND_FN);
-    pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
-    pGraphics->AttachControl(new IVLabelControl(titleArea, "Modern Metal", titleStyle));
 
 
     // Learn Button
@@ -342,39 +284,6 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       _UpdateCompensation();
     };
 
-    const auto learnButtonBounds = IRECT(0.0f, 0.0f, 100.0f, 30.0f).GetHShifted(10).GetVShifted(50);
-    pGraphics->AttachControl(new NEZButtonTimer(learnButtonBounds, ClickCallback, TimeoutCallback, 10000, "Learn"));
-    
-    
-    pGraphics->AttachControl(new ISVGControl(modelIconArea, modelIconSVG));
-
-#ifdef NAM_PICK_DIRECTORY
-    const std::string defaultNamFileString = "Select model directory...";
-    const std::string defaultIRString = "Select IR directory...";
-#else
-    const std::string defaultNamFileString = "Select model...";
-    const std::string defaultIRString = "Select IR...";
-#endif
-    pGraphics->AttachControl(new ISVGSwitchControl(irSwitchArea, {irIconOffSVG, irIconOnSVG}, kIRToggle));
-
-    // The knobs
-    pGraphics->AttachControl(new NAMKnobControl(inputKnobArea, kInputLevel, "", style, knobBackgroundBitmap));
-    pGraphics->AttachControl(new NAMKnobControl(outputKnobArea, kOutputLevel, "", style, knobBackgroundBitmap));
-
-    // The meters
-    pGraphics->AttachControl(new NAMMeterControl(inputMeterArea, meterBackgroundBitmap, style), kCtrlTagInputMeter);
-    pGraphics->AttachControl(new NAMMeterControl(outputMeterArea, meterBackgroundBitmap, style), kCtrlTagOutputMeter);
-
-    // Help/about box
-    pGraphics->AttachControl(new NAMCircleButtonControl(
-      helpButtonArea,
-      [pGraphics](IControl* pCaller) {
-        pGraphics->GetControlWithTag(kCtrlTagAboutBox)->As<NAMAboutBoxControl>()->HideAnimated(false);
-      },
-      helpSVG));
-
-    pGraphics->AttachControl(new NAMAboutBoxControl(b, backgroundBitmap, style), kCtrlTagAboutBox)->Hide(true);
-
     const std::function<void(IControl*)> buttonSetFat = [&](IControl* pCaller) {
       SplashClickActionFunc(pCaller);
       pCaller->GetDelegate()->SendArbitraryMsgFromUI(kMsgTagMMFat);
@@ -384,10 +293,41 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       pCaller->GetDelegate()->SendArbitraryMsgFromUI(kMsgTagMMTight);
     };
 
+    pGraphics->AttachBackground(BACKGROUND_FN);
+    pGraphics->AttachControl(new IVLabelControl(IRECT(150.0, 20.0, 450.0, 80.0), "Modern Metal", titleStyle));
+
+    pGraphics->AttachControl(new NEZButtonTimer(IRECT(10.0f, 310.0f, 100.0f, 340.0f), ClickCallback, TimeoutCallback, 10000, "Learn"));
+    
+
     pGraphics->AttachControl(
-      new IVButtonControl(modelArea.FracRectHorizontal(0.5, false), buttonSetFat, "Fat", style), kCtrlTagFat);
+      new ISVGSwitchControl(IRECT(540.0f, 310.0f, 580.0f, 340.0f), {irIconOffSVG, irIconOnSVG}, kIRToggle));
+
+    // The knobs
     pGraphics->AttachControl(
-      new IVButtonControl(modelArea.FracRectHorizontal(0.5, true), buttonSetTight, "Tight", style), kCtrlTagTight);
+      new NAMKnobControl(IRECT(60.0f, 80.0f, 300.0f, 290.0f), kInputLevel, "", style, knobBackgroundBitmap));
+    pGraphics->AttachControl(
+      new NAMKnobControl(IRECT(300.0f, 80.0f, 540.0f, 290.0f), kOutputLevel, "", style, knobBackgroundBitmap));
+
+    // The meters
+    pGraphics->AttachControl(
+      new NAMMeterControl(IRECT(20.0f, 80.0f, 50.0f, 290.0f), meterBackgroundBitmap, style), kCtrlTagInputMeter);
+    pGraphics->AttachControl(
+      new NAMMeterControl(IRECT(550.0f, 80.0f, 580.0f, 290.0f), meterBackgroundBitmap, style), kCtrlTagOutputMeter);
+
+    pGraphics->AttachControl(
+      new IVButtonControl(IRECT(130.0f, 310.0f, 220.0f, 340.0f), buttonSetFat, "Fat", style), kCtrlTagFat);
+    pGraphics->AttachControl(
+      new IVButtonControl(IRECT(130.0f, 350.0f, 220.0f, 380.0f), buttonSetTight, "Tight", style), kCtrlTagTight);
+
+    // Help/about box
+    pGraphics->AttachControl(new NAMCircleButtonControl(
+      IRECT(550.0, 40.0, 580.0, 70.0),
+      [pGraphics](IControl* pCaller) {
+        pGraphics->GetControlWithTag(kCtrlTagAboutBox)->As<NAMAboutBoxControl>()->HideAnimated(false);
+      },
+      helpSVG));
+
+    pGraphics->AttachControl(new NAMAboutBoxControl(b, backgroundBitmap, style), kCtrlTagAboutBox)->Hide(true);
 
     pGraphics->ForAllControlsFunc([](IControl* pControl) {
       pControl->SetMouseEventsWhenDisabled(true);
