@@ -20,6 +20,8 @@
 #include <NeuralAmpModelerCore/NAM/lstm.h>
 #include <NeuralAmpModelerCore/NAM/wavenet.h>
 
+#include "Caption.h"
+#include "Widgets.h"
 #include "wav_parser.h"
 #include "mmfat_nam.h"
 #include "mmtight_nam.h"
@@ -76,6 +78,10 @@ const IVStyle style =
 
 const IVStyle titleStyle =
   DEFAULT_STYLE.WithValueText(IText(45, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+
+const iplug::igraphics::IColor COLOR_ACTIVE = IColor::FromColorCode(0x488BD4);
+const iplug::igraphics::IColor COLOR_ACTIVE_DARK = IColor::FromColorCode(0x392946);
+const iplug::igraphics::IText TEXT_CAPTION = IText(16.f, COLOR_ACTIVE, "Roboto-Regular", EAlign::Near, EVAlign::Middle);
 
 EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char* str, const char* caption,
                               EMsgBoxType type)
@@ -284,19 +290,11 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       _UpdateCompensation();
     };
 
-    const std::function<void(IControl*)> buttonSetFat = [&](IControl* pCaller) {
-      SplashClickActionFunc(pCaller);
-      pCaller->GetDelegate()->SendArbitraryMsgFromUI(kMsgTagMMFat);
-    };
-    const std::function<void(IControl*)> buttonSetTight = [&](IControl* pCaller) {
-      SplashClickActionFunc(pCaller);
-      pCaller->GetDelegate()->SendArbitraryMsgFromUI(kMsgTagMMTight);
-    };
 
     pGraphics->AttachBackground(BACKGROUND_FN);
     pGraphics->AttachControl(new IVLabelControl(IRECT(150.0, 20.0, 450.0, 80.0), "Modern Metal", titleStyle));
 
-    pGraphics->AttachControl(new NEZButtonTimer(IRECT(10.0f, 310.0f, 100.0f, 340.0f), ClickCallback, TimeoutCallback, 10000, "Learn"));
+    pGraphics->AttachControl(new NEZButtonTimer(IRECT(10.0f, 310.0f, 100.0f, 340.0f), ClickCallback, TimeoutCallback, 10000, "Learn", style));
     
 
     pGraphics->AttachControl(
@@ -304,20 +302,19 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
     // The knobs
     pGraphics->AttachControl(
-      new NAMKnobControl(IRECT(60.0f, 80.0f, 300.0f, 290.0f), kInputLevel, "", style, knobBackgroundBitmap));
+      new BitmapKnob(IRECT(60.0f, 80.0f, 300.0f, 290.0f), kInputLevel, "", style, knobBackgroundBitmap));
     pGraphics->AttachControl(
-      new NAMKnobControl(IRECT(300.0f, 80.0f, 540.0f, 290.0f), kOutputLevel, "", style, knobBackgroundBitmap));
+      new BitmapKnob(IRECT(300.0f, 80.0f, 540.0f, 290.0f), kOutputLevel, "", style, knobBackgroundBitmap));
 
     // The meters
     pGraphics->AttachControl(
       new NAMMeterControl(IRECT(20.0f, 80.0f, 50.0f, 290.0f), meterBackgroundBitmap, style), kCtrlTagInputMeter);
     pGraphics->AttachControl(
       new NAMMeterControl(IRECT(550.0f, 80.0f, 580.0f, 290.0f), meterBackgroundBitmap, style), kCtrlTagOutputMeter);
-
+    //kModelIndex
     pGraphics->AttachControl(
-      new IVButtonControl(IRECT(130.0f, 310.0f, 220.0f, 340.0f), buttonSetFat, "Fat", style), kCtrlTagFat);
-    pGraphics->AttachControl(
-      new IVButtonControl(IRECT(130.0f, 350.0f, 220.0f, 380.0f), buttonSetTight, "Tight", style), kCtrlTagTight);
+      new Caption(IRECT(130.0f, 310.0f, 280.0f, 340.0f), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK, true),
+      kCtrlTagProfile);
 
     // Help/about box
     pGraphics->AttachControl(new NAMCircleButtonControl(
@@ -536,36 +533,15 @@ void NeuralAmpModeler::OnParamChange(int paramIdx)
 
 void NeuralAmpModeler::OnParamChangeUI(int paramIdx, EParamSource source)
 {
-  // TODO: Show selected model
   if (auto pGraphics = GetUI())
   {
     bool active = GetParam(paramIdx)->Bool();
 
     switch (paramIdx)
     {
-      //case kNoiseGateActive: pGraphics->GetControlWithParamIdx(kNoiseGateThreshold)->SetDisabled(!active); break;
-      /*case kEQActive:
-        pGraphics->ForControlInGroup("EQ_KNOBS", [active](IControl* pControl) { pControl->SetDisabled(!active); });
-        break;*/
       case kIRToggle:
       {
         _StageIRCustom((int)active);
-        break;
-      }
-      case kModelIndex:
-      {
-        IVStyle styleSelected = style;
-        styleSelected.colorSpec = colorSpecSelected;
-        const IVStyle styleNormal = style;
-        int currentIndex = (int)GetParam(kModelIndex)->Value();
-
-        IVButtonControl* buttonFat = (IVButtonControl*)pGraphics->GetControlWithTag(kCtrlTagFat);
-        buttonFat->SetStyle(currentIndex == kMMFat ? styleSelected : styleNormal);
-        buttonFat->SetDirty(false);
-
-        IVButtonControl* buttonTight = (IVButtonControl*)pGraphics->GetControlWithTag(kCtrlTagTight);
-        buttonTight->SetStyle(currentIndex == kMMTight ? styleSelected : styleNormal);
-        buttonTight->SetDirty(false);
         break;
       }
       default: break;
@@ -599,20 +575,6 @@ bool NeuralAmpModeler::OnMessage(int msgTag, int ctrlTag, int dataSize, const vo
         });
       }
 
-      return true;
-    }
-    case kMsgTagMMFat:
-    {
-      GetParam(kModelIndex)->Set((double)kMMFat);
-      SendParameterValueFromDelegate(kModelIndex, (double)kMMFat, true);
-      DirtyParametersFromUI(); // updates the host with the new parameter values
-      return true;
-    }
-    case kMsgTagMMTight:
-    {
-      GetParam(kModelIndex)->Set((double)kMMTight);
-      SendParameterValueFromDelegate(kModelIndex, (double)kMMTight, true);
-      DirtyParametersFromUI(); // updates the host with the new parameter values
       return true;
     }
     default: return false;

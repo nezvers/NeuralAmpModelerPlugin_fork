@@ -2,7 +2,6 @@
 #include <cmath>
 
 
-// source - https://youtu.be/Vjm--AqG04Y?t=580
 inline double db_to_volume(double x) {
 	return std::pow(10.0, 0.05 * x);
 }

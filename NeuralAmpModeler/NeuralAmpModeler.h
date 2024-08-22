@@ -67,6 +67,7 @@ enum ECtrlTags
   kCtrlTagOutputMeter,
   kCtrlTagAboutBox,
   kCtrlTagOutNorm,
+  kCtrlTagProfile,
   kCtrlTagFat,
   kCtrlTagTight,
   kNumCtrlTags
