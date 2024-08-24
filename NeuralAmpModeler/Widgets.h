@@ -77,7 +77,8 @@ public:
   : IVKnobControl(bounds, paramIdx, label, style, true)
   , IBitmapBase(bitmap)
   {
-    mInnerPointerFrac = 0.55f;
+    mInnerPointerFrac = 0.5f;
+    mLabelBounds = bounds;
   }
 
   void OnRescale() override { mBitmap = GetUI()->GetScaledBitmap(mBitmap); }
@@ -89,7 +90,13 @@ public:
     const float cx = knobRect.MW(), cy = knobRect.MH();
     const float angle = mAngle1 + (static_cast<float>(GetValue()) * (mAngle2 - mAngle1));
     g.DrawFittedBitmap(mBitmap, knobRect);
-    DrawIndicatorTrack(g, angle, cx + 0.5, cy, widgetRadius);
+    
+    mInnerPointerFrac = 0.43f;
+    mTrackSize = 2.0;
+    float valueRadius = 0.615;
+    g.DrawArc(COLOR_BLACK, cx, cy, widgetRadius * valueRadius, 0.0, 360.0, &mBlend, mTrackSize * 3.5);
+    DrawIndicatorTrack(g, angle, cx + 0.5, cy, widgetRadius * valueRadius);
+
     float data[2][2];
     RadialPoints(angle, cx, cy, mInnerPointerFrac * widgetRadius, mInnerPointerFrac * widgetRadius, 2, data);
     g.PathCircle(data[1][0], data[1][1], 3);

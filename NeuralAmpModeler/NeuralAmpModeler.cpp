@@ -77,11 +77,14 @@ const IVStyle style =
           DEFAULT_WIDGET_ANGLE};
 
 const IVStyle titleStyle =
-  DEFAULT_STYLE.WithValueText(IText(45, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+  DEFAULT_STYLE.WithValueText(IText(40, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+
+const IVStyle labelStyle =
+  DEFAULT_STYLE.WithValueText(IText(25, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
 
 const iplug::igraphics::IColor COLOR_ACTIVE = IColor::FromColorCode(0x488BD4);
 const iplug::igraphics::IColor COLOR_ACTIVE_DARK = IColor::FromColorCode(0x392946);
-const iplug::igraphics::IText TEXT_CAPTION = IText(16.f, COLOR_ACTIVE, "Roboto-Regular", EAlign::Near, EVAlign::Middle);
+const iplug::igraphics::IText TEXT_CAPTION = IText(40.f, COLOR_ACTIVE, "Michroma-Regular", EAlign::Near, EVAlign::Middle);
 
 EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char* str, const char* caption,
                               EMsgBoxType type)
@@ -290,35 +293,70 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       _UpdateCompensation();
     };
 
-
+    float x = 60;
+    float y = 20;
+    float w = 250;
+    float h = 50;
     pGraphics->AttachBackground(BACKGROUND_FN);
-    pGraphics->AttachControl(new IVLabelControl(IRECT(150.0, 20.0, 450.0, 80.0), "Modern Metal", titleStyle));
-
-    pGraphics->AttachControl(new NEZButtonTimer(IRECT(10.0f, 310.0f, 100.0f, 340.0f), ClickCallback, TimeoutCallback, 10000, "Learn", style));
+    // TITLE
+    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Modern Metal", titleStyle));
     
-
+    // PROFILE
+    x = 320;
+    w = 130;
     pGraphics->AttachControl(
-      new ISVGSwitchControl(IRECT(540.0f, 310.0f, 580.0f, 340.0f), {irIconOffSVG, irIconOnSVG}, kIRToggle));
-
-    // The knobs
-    pGraphics->AttachControl(
-      new BitmapKnob(IRECT(60.0f, 80.0f, 300.0f, 290.0f), kInputLevel, "", style, knobBackgroundBitmap));
-    pGraphics->AttachControl(
-      new BitmapKnob(IRECT(300.0f, 80.0f, 540.0f, 290.0f), kOutputLevel, "", style, knobBackgroundBitmap));
-
-    // The meters
-    pGraphics->AttachControl(
-      new NAMMeterControl(IRECT(20.0f, 80.0f, 50.0f, 290.0f), meterBackgroundBitmap, style), kCtrlTagInputMeter);
-    pGraphics->AttachControl(
-      new NAMMeterControl(IRECT(550.0f, 80.0f, 580.0f, 290.0f), meterBackgroundBitmap, style), kCtrlTagOutputMeter);
-    //kModelIndex
-    pGraphics->AttachControl(
-      new Caption(IRECT(130.0f, 310.0f, 280.0f, 340.0f), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK, true),
+      new Caption(IRECT(x, y, x + w, y + h), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK, true),
       kCtrlTagProfile);
 
+    x = 110;
+    y = 280;
+    w = 100;
+    h = 30;
+    pGraphics->AttachControl(
+      new NEZButtonTimer(IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Learn", style));
+    
+    x = 380;
+    y = 280;
+    w = 40;
+    h = 30;
+    pGraphics->AttachControl(new ISVGSwitchControl(IRECT(x, y, x + w, y + h), {irIconOffSVG, irIconOnSVG}, kIRToggle));
+
+    // The knobs
+    x = 50;
+    y = 80;
+    w = 210;
+    h = 210;
+    IVStyle knobStyle = style;
+    knobStyle.showValue = false;
+    knobStyle.showLabel = false;
+    pGraphics->AttachControl(
+      new BitmapKnob(IRECT(x, y, x + w, y + h), kInputLevel, "", knobStyle, knobBackgroundBitmap));
+    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Drive", labelStyle));
+
+    x = 260;
+    pGraphics->AttachControl(
+      new BitmapKnob(IRECT(x, y, x + w, y + h), kOutputLevel, "", knobStyle, knobBackgroundBitmap));
+    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Volume", labelStyle));
+    
+
+    // The meters
+    x = 20;
+    y = 80;
+    w = 30;
+    h = 190;
+    pGraphics->AttachControl(
+      new NAMMeterControl(IRECT(x, y, x + w, y + h), meterBackgroundBitmap, style), kCtrlTagInputMeter);
+    x = 470;
+    pGraphics->AttachControl(
+      new NAMMeterControl(IRECT(x, y, x + w, y + h), meterBackgroundBitmap, style), kCtrlTagOutputMeter);
+
     // Help/about box
+    x = 470;
+    y = 30;
+    w = 30;
+    h = 30;
     pGraphics->AttachControl(new NAMCircleButtonControl(
-      IRECT(550.0, 40.0, 580.0, 70.0),
+      IRECT(x, y, x + w, y + h),
       [pGraphics](IControl* pCaller) {
         pGraphics->GetControlWithTag(kCtrlTagAboutBox)->As<NAMAboutBoxControl>()->HideAnimated(false);
       },
