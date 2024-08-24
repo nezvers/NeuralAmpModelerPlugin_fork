@@ -308,6 +308,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       new Caption(IRECT(x, y, x + w, y + h), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK, true),
       kCtrlTagProfile);
 
+    // LEARN
     x = 110;
     y = 280;
     w = 100;
@@ -315,7 +316,8 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics->AttachControl(
       new NEZButtonTimer(IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Learn", style));
     
-    x = 380;
+    // IR
+    x = 360;
     y = 280;
     w = 40;
     h = 30;
@@ -362,6 +364,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       },
       helpSVG));
 
+    // ABOUT
     pGraphics->AttachControl(new NAMAboutBoxControl(b, backgroundBitmap, style), kCtrlTagAboutBox)->Hide(true);
 
     pGraphics->ForAllControlsFunc([](IControl* pControl) {
