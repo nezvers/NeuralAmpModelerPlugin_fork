@@ -16,5 +16,21 @@ public:
   void OnResize() override;
 };
 
+class CaptionBitmap : public ICaptionControl
+{
+public:
+  CaptionBitmap(const IRECT& bounds, int paramIdx, const IText& text, const IColor& bgColor, const IBitmap* bitmap = nullptr,
+                bool showParamLabel = false)
+  : ICaptionControl(bounds, paramIdx, text, bgColor, showParamLabel){
+    mBitmap = *bitmap;
+  };
+
+  void Draw(IGraphics& g) override;
+  void OnResize() override;
+
+  protected:
+  IBitmap mBitmap;
+};
+
 END_IGRAPHICS_NAMESPACE
 END_IPLUG_NAMESPACE

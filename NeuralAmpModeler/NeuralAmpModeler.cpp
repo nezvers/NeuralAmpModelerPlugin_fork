@@ -312,16 +312,16 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     // LEARN
     x = 110;
     y = 280;
-    w = 100;
-    h = 30;
+    w = 150;
+    h = 50;
     pGraphics->AttachControl(
-      new NEZButtonTimer(IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Learn", style));
+      new NEZButtonTimer(IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Learn", style, &learnButtonBitmap));
     
     // IR
     x = 330;
     y = 280;
-    w = 70;
-    h = 70;
+    w = 50;
+    h = 50;
     pGraphics->AttachControl(
       new BitmapSwitch(IRECT(x, y, x + w, y + h), kIRToggle, irButtonOnBitmap, irButtonOffBitmap
       )

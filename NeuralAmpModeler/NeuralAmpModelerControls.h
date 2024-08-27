@@ -15,8 +15,8 @@ public:
   NEZButtonTimer(const IRECT& bounds, IActionFunction clickCallback = SplashClickActionFunc,
                  IActionFunction timeoutCallback = SplashClickActionFunc,  
     uint32_t interval = 1000,
-                 const char* label = "",
-                const IVStyle& style = DEFAULT_STYLE, bool labelInButton = true, bool valueInButton = true,
+                 const char* label = "", const IVStyle& style = DEFAULT_STYLE, const IBitmap* bitmap = nullptr,
+                 bool labelInButton = true, bool valueInButton = true,
                 EVShape shape = EVShape::Rectangle)
   : IVButtonControl(bounds, nullptr, label,
                       style, labelInButton, valueInButton,
@@ -25,6 +25,7 @@ public:
     wait_time = interval;
     TimeoutCallback = timeoutCallback;
     ClickCallback = clickCallback;
+    mBitmap = *bitmap;
 
     ClickEvent = [&](IControl* iControl) {
       SplashClickActionFunc(this);
@@ -38,7 +39,13 @@ public:
     SetActionFunction(ClickEvent);
   }
 
-  private:
+  void Draw(IGraphics& g) override { 
+    g.DrawFittedBitmap(mBitmap, GetRECT());
+    DrawLabel(g);
+  }
+
+  protected:
+  IBitmap mBitmap;
   std::function<void(IControl*)> ClickEvent;
   std::function<void(IControl*)> ClickCallback;
   std::function<void(IControl*)> TimeoutCallback;
