@@ -70,6 +70,31 @@ public:
   void Draw(IGraphics& g) override;
 };
 
+class BitmapSwitch : public ISwitchControlBase
+{
+public:
+  BitmapSwitch(const IRECT& bounds, int paramIdx, const IBitmap& bitmap_on, const IBitmap& bitmap_off)
+  : ISwitchControlBase(bounds, paramIdx)
+  {
+    mBitmap_on = bitmap_on;
+    mBitmap_off = bitmap_off;
+  }
+
+  void Draw(IGraphics& g) override
+  {
+    if (GetSelectedIdx() == 0) {
+      g.DrawFittedBitmap(mBitmap_off, GetRECT());
+    }
+    else {
+      g.DrawFittedBitmap(mBitmap_on, GetRECT());
+    }
+  }
+
+protected:
+  IBitmap mBitmap_on;
+  IBitmap mBitmap_off;
+};
+
 class BitmapKnob : public IVKnobControl, public IBitmapBase
 {
 public:

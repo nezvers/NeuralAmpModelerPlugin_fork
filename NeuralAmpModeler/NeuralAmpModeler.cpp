@@ -60,11 +60,14 @@ const IVColorSpec colorSpecSelected{
   PluginColors::NAM_THEMECOLOR.WithContrast(0.1f), // Extra 3
 };
 
+const iplug::igraphics::IColor COLOR_ACTIVE = IColor::FromColorCode(0x8b9fff);
+const iplug::igraphics::IColor COLOR_ACTIVE_DARK = IColor::FromColorCode(0x392946);
+
 const IVStyle style =
   IVStyle{true, // Show label
           true, // Show value
           colorSpec,
-          {DEFAULT_TEXT_SIZE + 3.f, EVAlign::Middle, PluginColors::NAM_THEMEFONTCOLOR}, // Knob label text5
+          {25.0, EVAlign::Middle, COLOR_ACTIVE}, // Knob label text5
           {DEFAULT_TEXT_SIZE + 3.f, EVAlign::Bottom, PluginColors::NAM_THEMEFONTCOLOR}, // Knob value text
           DEFAULT_HIDE_CURSOR,
           DEFAULT_DRAW_FRAME,
@@ -76,14 +79,11 @@ const IVStyle style =
           DEFAULT_WIDGET_FRAC,
           DEFAULT_WIDGET_ANGLE};
 
+const IVStyle labelStyle =
+  DEFAULT_STYLE.WithValueText(IText(25, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
 const IVStyle titleStyle =
   DEFAULT_STYLE.WithValueText(IText(40, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
 
-const IVStyle labelStyle =
-  DEFAULT_STYLE.WithValueText(IText(25, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
-
-const iplug::igraphics::IColor COLOR_ACTIVE = IColor::FromColorCode(0x488BD4);
-const iplug::igraphics::IColor COLOR_ACTIVE_DARK = IColor::FromColorCode(0x392946);
 const iplug::igraphics::IText TEXT_CAPTION = IText(40.f, COLOR_ACTIVE, "Michroma-Regular", EAlign::Near, EVAlign::Middle);
 
 EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char* str, const char* caption,
@@ -268,8 +268,9 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics->LoadFont("Michroma-Regular", MICHROMA_FN);
 
     const auto helpSVG = pGraphics->LoadSVG(HELP_FN);
-    const auto irIconOnSVG = pGraphics->LoadSVG(IR_ICON_ON_FN);
-    const auto irIconOffSVG = pGraphics->LoadSVG(IR_ICON_OFF_FN);
+    const auto irButtonOnBitmap = pGraphics->LoadBitmap(IR_BUTTON_ON_FN);
+    const auto irButtonOffBitmap = pGraphics->LoadBitmap(IR_BUTTON_OFF_FN);
+    const auto learnButtonBitmap = pGraphics->LoadBitmap(LEARN_BUTTON_FN);
 
     const auto backgroundBitmap = pGraphics->LoadBitmap(BACKGROUND_FN);
     const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOBBACKGROUND_FN);
@@ -317,11 +318,14 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       new NEZButtonTimer(IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Learn", style));
     
     // IR
-    x = 360;
+    x = 330;
     y = 280;
-    w = 40;
-    h = 30;
-    pGraphics->AttachControl(new ISVGSwitchControl(IRECT(x, y, x + w, y + h), {irIconOffSVG, irIconOnSVG}, kIRToggle));
+    w = 70;
+    h = 70;
+    pGraphics->AttachControl(
+      new BitmapSwitch(IRECT(x, y, x + w, y + h), kIRToggle, irButtonOnBitmap, irButtonOffBitmap
+      )
+    );
 
     // The knobs
     x = 50;
