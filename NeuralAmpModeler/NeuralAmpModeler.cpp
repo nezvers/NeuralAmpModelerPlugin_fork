@@ -79,12 +79,13 @@ const IVStyle style =
           DEFAULT_WIDGET_FRAC,
           DEFAULT_WIDGET_ANGLE};
 
-const IVStyle labelStyle =
-  DEFAULT_STYLE.WithValueText(IText(25, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+const IVStyle labelStyle = DEFAULT_STYLE.WithValueText(IText(25, COLOR_WHITE, "Roboto-Regular")).WithDrawFrame(false).WithShadowOffset(0.f);
+const IVStyle sliderStyle =
+  DEFAULT_STYLE.WithValueText(IText(20, COLOR_WHITE, "Roboto-Regular")).WithDrawFrame(false).WithShadowOffset(0.f);
 const IVStyle titleStyle =
-  DEFAULT_STYLE.WithValueText(IText(40, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(2.f);
+  DEFAULT_STYLE.WithValueText(IText(60, COLOR_WHITE, "Michroma-Regular")).WithDrawFrame(false).WithShadowOffset(0.f);
 
-const iplug::igraphics::IText TEXT_CAPTION = IText(40.f, COLOR_ACTIVE, "Michroma-Regular", EAlign::Near, EVAlign::Middle);
+const iplug::igraphics::IText TEXT_CAPTION = IText(25.f, COLOR_ACTIVE, "Roboto-Regular", EAlign::Center, EVAlign::Middle);
 
 EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char* str, const char* caption,
                               EMsgBoxType type)
@@ -289,47 +290,22 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       peakMax = 0.0;
     };
     std::function<void(IControl*)> TimeoutCallback = [&](IControl* iControl) {
-      ((IVButtonControl*)iControl)->SetLabelStr("Learn");
+      ((IVButtonControl*)iControl)->SetLabelStr("Auto Gain");
       mLearnInput = false;
       _UpdateCompensation();
     };
 
-    float x = 60;
-    float y = 20;
-    float w = 250;
-    float h = 50;
+    float w = 400;
+    float h = 80;
+    float x = b.R * 0.5 - w * 0.5;
+    float y = 10;
     pGraphics->AttachBackground(BACKGROUND_FN);
     // TITLE
     pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Modern Metal", titleStyle));
-    
-    // PROFILE
-    x = 320;
-    w = 130;
-    pGraphics->AttachControl(
-      new Caption(IRECT(x, y, x + w, y + h), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK, true),
-      kCtrlTagProfile);
 
-    // LEARN
-    x = 110;
-    y = 280;
-    w = 150;
-    h = 50;
-    pGraphics->AttachControl(
-      new NEZButtonTimer(IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Learn", style, &learnButtonBitmap));
-    
-    // IR
-    x = 330;
-    y = 280;
-    w = 50;
-    h = 50;
-    pGraphics->AttachControl(
-      new BitmapSwitch(IRECT(x, y, x + w, y + h), kIRToggle, irButtonOnBitmap, irButtonOffBitmap
-      )
-    );
-
-    // The knobs
-    x = 50;
-    y = 80;
+    // GAIN
+    x = 30;
+    y = 60;
     w = 210;
     h = 210;
     IVStyle knobStyle = style;
@@ -337,25 +313,50 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     knobStyle.showLabel = false;
     pGraphics->AttachControl(
       new BitmapKnob(IRECT(x, y, x + w, y + h), kInputLevel, "", knobStyle, knobBackgroundBitmap));
-    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Drive", labelStyle));
+    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "GAIN", labelStyle));
 
-    x = 260;
+    // PROFILE
+    w = 150;
+    h = 50;
+    x = x + 210 + 40;
+    y = y + 50;
+    pGraphics->AttachControl(new CaptionBitmap(IRECT(x, y, x + w, y + h), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK,&learnButtonBitmap, true),kCtrlTagProfile);
+
+    // LEARN
+    w = 150;
+    h = 50;
+    x = x;
+    y = y + h + 10;
+    pGraphics->AttachControl(new NEZButtonTimer(
+      IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Auto Gain", style, &learnButtonBitmap));
+
+    // IR
+    w = 50;
+    h = 50;
+    x = b.R - w - 10;
+    y = b.B - h - 10;
     pGraphics->AttachControl(
-      new BitmapKnob(IRECT(x, y, x + w, y + h), kOutputLevel, "", knobStyle, knobBackgroundBitmap));
-    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Volume", labelStyle));
+      new BitmapSwitch(IRECT(x, y, x + w, y + h), kIRToggle, irButtonOnBitmap, irButtonOffBitmap));
     
 
     // The meters
-    x = 20;
-    y = 80;
-    w = 30;
-    h = 190;
+    h = 30;
+    w = 150;
+    x = x - w - 10;
+    y = y + 10;
+    //pGraphics->AttachControl(new NAMMeterControl(IRECT(x, y, x + w, y + h), meterBackgroundBitmap, style), kCtrlTagInputMeter);
     pGraphics->AttachControl(
-      new NAMMeterControl(IRECT(x, y, x + w, y + h), meterBackgroundBitmap, style), kCtrlTagInputMeter);
-    x = 470;
+      new LinePeakControl(IRECT(x, y, x + w, y + h), style, EDirection::Horizontal), kCtrlTagOutputMeter);
     pGraphics->AttachControl(
-      new NAMMeterControl(IRECT(x, y, x + w, y + h), meterBackgroundBitmap, style), kCtrlTagOutputMeter);
+      new SliderHandle(IRECT(x, y, x + w, y + h), kOutputLevel, "", knobStyle, false, EDirection::Horizontal));
 
+    w = 40;
+    h = h;
+    x = x - w;
+    y = y;
+    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "OUT", sliderStyle));
+
+    /*
     // Help/about box
     x = 470;
     y = 30;
@@ -375,6 +376,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       pControl->SetMouseEventsWhenDisabled(true);
       pControl->SetMouseOverWhenDisabled(true);
     });
+    */
   };
 }
 
@@ -930,7 +932,7 @@ void NeuralAmpModeler::_UpdateMeters(sample** inputPointer, sample** outputPoint
 {
   // Right now, we didn't specify MAXNC when we initialized these, so it's 1.
   const int nChansHack = 1;
-  mInputSender.ProcessBlock(inputPointer, (int)nFrames, kCtrlTagInputMeter, nChansHack);
+  //mInputSender.ProcessBlock(inputPointer, (int)nFrames, kCtrlTagInputMeter, nChansHack);
   mOutputSender.ProcessBlock(outputPointer, (int)nFrames, kCtrlTagOutputMeter, nChansHack);
   if (mLearnInput) {
     _LearnMaxPeak(inputPointer, (int)nFrames, nChansHack);

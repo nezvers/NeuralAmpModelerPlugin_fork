@@ -135,6 +135,106 @@ public:
   }
 };
 
+class LinePeakControl : public IVPeakAvgMeterControl<>
+{
+  static constexpr float KMeterMin = -70.0f;
+  static constexpr float KMeterMax = -0.01f;
+  static constexpr float KLineThickness = 1.0f;
+
+public:
+  LinePeakControl(const IRECT& bounds, const IVStyle& style, const EDirection direction = EDirection::Vertical)
+  : IVPeakAvgMeterControl<>(bounds, "", style.WithShowValue(false).WithDrawFrame(false).WithWidgetFrac(1.0), direction,
+                            {}, 0, KMeterMin, KMeterMax, {})
+  {
+    SetPeakSize(5.0f);
+  }
+
+  virtual void OnResize() override
+  {
+    SetTargetRECT(MakeRects(mRECT));
+    if (mDirection == EDirection::Vertical) {
+      mWidgetBounds = mWidgetBounds.GetMidHPadded(KLineThickness); // line thickness
+    }
+    else {
+      mWidgetBounds = mWidgetBounds.GetMidVPadded(KLineThickness);
+    }
+    MakeTrackRects(mWidgetBounds);
+    //MakeStepRects(mWidgetBounds, mNSteps);
+    SetDirty(false);
+  }
+
+  void DrawBackground(IGraphics& g, const IRECT& r) override {
+    IRECT rect;
+    const IColor colorBackground = COLOR_BLACK.WithOpacity(0.5f);
+    if (mDirection == EDirection::Vertical)
+    {
+      rect = r.GetMidHPadded(KLineThickness); // line thickness
+    }
+    else
+    {
+      rect = r.GetMidVPadded(KLineThickness);
+    }
+    g.FillRect(colorBackground, rect, &mBlend);
+  }
+
+  void DrawTrackHandle(IGraphics& g, const IRECT& r, int chIdx, bool aboveBaseValue) override
+  {
+    g.FillRect(GetColor(kX1), r, &mBlend);
+  }
+
+  void DrawPeak(IGraphics& g, const IRECT& r, int chIdx, bool aboveBaseValue) override
+  {
+    //g.DrawGrid(COLOR_BLACK, mTrackBounds.Get()[chIdx], 10, 2);
+    //g.FillRect(GetColor(kX3), r, &mBlend);
+  }
+};
+
+class SliderHandle : public IVSliderControl
+{
+public:
+  SliderHandle(const IRECT& bounds, int paramIdx = kNoParameter, const char* label = "",
+               const IVStyle& style = DEFAULT_STYLE, bool valueIsEditable = false,
+               EDirection dir = EDirection::Vertical, double gearing = DEFAULT_GEARING, float handleSize = 8.f,
+               float trackSize = 2.f, bool handleInsideTrack = false, float handleXOffset = 0.f,
+               float handleYOffset = 0.f)
+  : IVSliderControl(bounds, paramIdx, label, style, valueIsEditable, dir, gearing, handleSize, trackSize, handleInsideTrack, handleXOffset, handleYOffset)
+  {  
+  }
+  void Draw(IGraphics& g) override {
+    IRECT filledTrack = mTrackBounds.FracRect(mDirection, (float)GetValue());
+    float cx, cy;
+
+    const float offset =
+      (mStyle.drawShadows && mShape != EVShape::Ellipse /* TODO? */) ? mStyle.shadowOffset * 0.5f : 0.f;
+
+    if (mDirection == EDirection::Vertical)
+    {
+      cx = filledTrack.MW() + offset;
+      cy = filledTrack.T;
+    }
+    else
+    {
+      cx = filledTrack.R;
+      cy = filledTrack.MH() + offset;
+    }
+
+    if (mHandleSize > 0.f)
+    {
+      IRECT r = {cx + mHandleXOffset - mHandleSize, cy + mHandleYOffset - mHandleSize,
+                     cx + mHandleXOffset + mHandleSize, cy + mHandleYOffset + mHandleSize};
+      const float contrast = IsDisabled() ? -GRAYED_ALPHA : 0.f;
+      const IBlend blend = mControl->GetBlend();
+
+      g.FillEllipse(GetColor(kFG).WithContrast(contrast), r /*, &blend*/);
+
+      // Shade when hovered
+      if (mMouseIsOver)
+        g.FillEllipse(GetColor(kHL), r, &blend);
+    }
+  }
+
+};
+
 
 END_IGRAPHICS_NAMESPACE
 END_IPLUG_NAMESPACE

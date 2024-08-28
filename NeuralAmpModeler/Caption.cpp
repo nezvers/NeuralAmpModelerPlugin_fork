@@ -22,6 +22,7 @@ void Caption::Draw(IGraphics& g)
   g.DrawRoundRect(mMouseIsOver ? mTriangleMouseOverColor : COLOR_ACTIVE, mRECT, 2.5);
 
   IRECT textRect = mRECT.GetPadded(-5.f, -2.f, -mText.mSize, -2.f);
+  textRect.R -= mTriangleRect.W();
   if (mStr.GetLength() && g.GetControlInTextEntry() != this)
     g.DrawText(mText, mStr.Get(), textRect, &mBlend);
 
@@ -59,7 +60,8 @@ void CaptionBitmap::Draw(IGraphics& g) {
   }
   g.DrawFittedBitmap(mBitmap, GetRECT());
 
-  IRECT textRect = mRECT.GetPadded(-5.f, -2.f, -mText.mSize, -2.f);
+  IRECT textRect = mRECT.GetPadded(-10.f, -2.f, -mText.mSize, -2.f);
+  textRect.R -= mTriangleRect.W();
   if (mStr.GetLength() && g.GetControlInTextEntry() != this)
     g.DrawText(mText, mStr.Get(), textRect, &mBlend);
 
@@ -78,7 +80,7 @@ void CaptionBitmap::OnResize()
   const float triSizeX = rectW * 0.5f;
   const float triSizeY = rectW * 0.33f;
 
-  mTriangleRect = mRECT.GetFromRight(rectW).GetCentredInside(IRECT(0.f, 0.f, triSizeX, triSizeY));
+  mTriangleRect = mRECT.GetFromRight(rectW + 20).GetCentredInside(IRECT(0.f, 0.f, triSizeX, triSizeY));
 }
 
 END_IGRAPHICS_NAMESPACE
