@@ -34,34 +34,21 @@ using namespace iplug;
 using namespace igraphics;
 
 const double kDCBlockerFrequency = 5.0;
+const iplug::igraphics::IColor COLOR_ACTIVE = IColor::FromColorCode(0x8b9fff);
+const iplug::igraphics::IColor COLOR_ACTIVE_DARK = IColor::FromColorCode(0x392946);
 
 // Styles
 const IVColorSpec colorSpec{
   DEFAULT_BGCOLOR, // Background
-  PluginColors::NAM_THEMECOLOR.WithContrast(-0.15f), // Foreground
-  PluginColors::NAM_THEMECOLOR.WithOpacity(0.8f), // Pressed
-  PluginColors::NAM_THEMECOLOR.WithOpacity(0.4f), // Frame
+  COLOR_ACTIVE, // Foreground
+  COLOR_ACTIVE.WithOpacity(0.8f), // Pressed
+  COLOR_ACTIVE.WithOpacity(0.4f), // Frame
   PluginColors::MOUSEOVER, // Highlight
   DEFAULT_SHCOLOR, // Shadow
-  PluginColors::NAM_THEMECOLOR, // Extra 1
+  COLOR_ACTIVE, // Extra 1
   COLOR_RED, // Extra 2 --> color for clipping in meters
-  PluginColors::NAM_THEMECOLOR.WithContrast(0.1f), // Extra 3
+  COLOR_ACTIVE.WithContrast(0.1f), // Extra 3
 };
-
-const IVColorSpec colorSpecSelected{
-  DEFAULT_BGCOLOR, // Background
-  PluginColors::NAM_THEMECOLOR.WithContrast(0.15f), // Foreground
-  PluginColors::NAM_THEMECOLOR.WithOpacity(0.8f), // Pressed
-  PluginColors::NAM_THEMECOLOR.WithOpacity(0.4f), // Frame
-  PluginColors::MOUSEOVER, // Highlight
-  DEFAULT_SHCOLOR, // Shadow
-  PluginColors::NAM_THEMECOLOR, // Extra 1
-  COLOR_RED, // Extra 2 --> color for clipping in meters
-  PluginColors::NAM_THEMECOLOR.WithContrast(0.1f), // Extra 3
-};
-
-const iplug::igraphics::IColor COLOR_ACTIVE = IColor::FromColorCode(0x8b9fff);
-const iplug::igraphics::IColor COLOR_ACTIVE_DARK = IColor::FromColorCode(0x392946);
 
 const IVStyle style =
   IVStyle{true, // Show label
@@ -331,10 +318,10 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Auto Gain", style, &learnButtonBitmap));
 
     // IR
-    w = 50;
-    h = 50;
-    x = b.R - w - 10;
-    y = b.B - h - 10;
+    w = 40;
+    h = 40;
+    x = b.R - w - 20;
+    y = b.B - h - 5;
     pGraphics->AttachControl(
       new BitmapSwitch(IRECT(x, y, x + w, y + h), kIRToggle, irButtonOnBitmap, irButtonOffBitmap));
     
@@ -342,8 +329,8 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     // The meters
     h = 30;
     w = 150;
-    x = x - w - 10;
-    y = y + 10;
+    x = b.R - w - 70;
+    y = b.B - h - 10;
     //pGraphics->AttachControl(new NAMMeterControl(IRECT(x, y, x + w, y + h), meterBackgroundBitmap, style), kCtrlTagInputMeter);
     pGraphics->AttachControl(
       new LinePeakControl(IRECT(x, y, x + w, y + h), style, EDirection::Horizontal), kCtrlTagOutputMeter);

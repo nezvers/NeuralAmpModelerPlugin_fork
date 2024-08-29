@@ -201,11 +201,15 @@ public:
   {  
   }
   void Draw(IGraphics& g) override {
+    if (!(mHandleSize > 0.f))
+    {
+      return;
+    }
+
     IRECT filledTrack = mTrackBounds.FracRect(mDirection, (float)GetValue());
     float cx, cy;
 
-    const float offset =
-      (mStyle.drawShadows && mShape != EVShape::Ellipse /* TODO? */) ? mStyle.shadowOffset * 0.5f : 0.f;
+    const float offset = (mStyle.drawShadows && mShape != EVShape::Ellipse /* TODO? */) ? mStyle.shadowOffset * 0.5f : 0.f;
 
     if (mDirection == EDirection::Vertical)
     {
@@ -218,18 +222,25 @@ public:
       cy = filledTrack.MH() + offset;
     }
 
-    if (mHandleSize > 0.f)
-    {
-      IRECT r = {cx + mHandleXOffset - mHandleSize, cy + mHandleYOffset - mHandleSize,
-                     cx + mHandleXOffset + mHandleSize, cy + mHandleYOffset + mHandleSize};
-      const float contrast = IsDisabled() ? -GRAYED_ALPHA : 0.f;
-      const IBlend blend = mControl->GetBlend();
+    float x = cx + mHandleXOffset - mHandleSize;
+    float y = cy + mHandleYOffset - mHandleSize;
+    float r = cx + mHandleXOffset + mHandleSize;
+    float b = cy + mHandleYOffset + mHandleSize;
 
-      g.FillEllipse(GetColor(kFG).WithContrast(contrast), r /*, &blend*/);
+    IRECT rect = {x, y, r, b};
+    rect = rect.GetPadded(-2.0f);
+    
+    const IBlend blend = mControl->GetBlend();
+    const IColor colorBackground = COLOR_BLACK.WithOpacity(0.5f);
 
-      // Shade when hovered
-      if (mMouseIsOver)
-        g.FillEllipse(GetColor(kHL), r, &blend);
+     g.FillEllipse(colorBackground, rect /*, &blend*/);
+
+    // Shade when hovered
+    if (mMouseIsOver) {
+      g.FillEllipse(GetColor(kFG).WithContrast(0.1f), rect.GetPadded(-2.0f), &blend);
+    }
+    else {
+      g.FillEllipse(GetColor(kFG), rect.GetPadded(-2.0f), &blend);
     }
   }
 

@@ -10,7 +10,7 @@ class Caption : public ICaptionControl
 {
 public:
   Caption(const IRECT& bounds, int paramIdx, const IText& text, const IColor& bgColor, bool showParamLabel = false)
-  : ICaptionControl(bounds, paramIdx, text, bgColor, showParamLabel){};
+  : ICaptionControl(bounds, paramIdx, text, {0}, showParamLabel){};
 
   void Draw(IGraphics& g) override;
   void OnResize() override;
@@ -21,7 +21,8 @@ class CaptionBitmap : public ICaptionControl
 public:
   CaptionBitmap(const IRECT& bounds, int paramIdx, const IText& text, const IColor& bgColor, const IBitmap* bitmap = nullptr,
                 bool showParamLabel = false)
-  : ICaptionControl(bounds, paramIdx, text, bgColor, showParamLabel){
+  : ICaptionControl(bounds, paramIdx, text, {0}, showParamLabel)
+  {
     mBitmap = *bitmap;
   };
 
