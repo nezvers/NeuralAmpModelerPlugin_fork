@@ -33,7 +33,7 @@ enum EModels
   kMMTight,
   kModelCount,
 };
-#define MODEL_NAMES "Fat", "Tight"
+#define MODEL_NAMES "FAT", "TIGHT"
 
 enum EParams
 {

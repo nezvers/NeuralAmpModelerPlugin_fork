@@ -269,7 +269,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
 
     // Learn Button
     std::function<void(IControl*)> ClickCallback = [&](IControl* iControl) {
-      ((IVButtonControl*)iControl)->SetLabelStr("Listening...");
+      ((IVButtonControl*)iControl)->SetLabelStr("LISTENING...");
       mLearnInput = true;
       GetParam(kPeakCompensation)->Set(1.0);
       SendParameterValueFromDelegate(kPeakCompensation, 1.0, false);
@@ -277,24 +277,24 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
       peakMax = 0.0;
     };
     std::function<void(IControl*)> TimeoutCallback = [&](IControl* iControl) {
-      ((IVButtonControl*)iControl)->SetLabelStr("Auto Gain");
+      ((IVButtonControl*)iControl)->SetLabelStr("AUTO GAIN");
       mLearnInput = false;
       _UpdateCompensation();
     };
 
     float w = 400;
-    float h = 80;
+    float h = 60;
     float x = b.R * 0.5 - w * 0.5;
     float y = 10;
     pGraphics->AttachBackground(BACKGROUND_FN);
     // TITLE
-    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Modern Metal", titleStyle));
+    //pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "Modern Metal", titleStyle));
 
     // GAIN
-    x = 30;
-    y = 60;
-    w = 210;
-    h = 210;
+    x = 40;
+    y = 70;
+    w = 190;
+    h = 190;
     IVStyle knobStyle = style;
     knobStyle.showValue = false;
     knobStyle.showLabel = false;
@@ -305,17 +305,17 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     // PROFILE
     w = 150;
     h = 50;
-    x = x + 210 + 40;
-    y = y + 50;
+    x = x + 210 + 60;
+    y = y + 40;
     pGraphics->AttachControl(new CaptionBitmap(IRECT(x, y, x + w, y + h), kModelIndex, TEXT_CAPTION, COLOR_ACTIVE_DARK,&learnButtonBitmap, true),kCtrlTagProfile);
 
     // LEARN
     w = 150;
     h = 50;
     x = x;
-    y = y + h + 10;
+    y = y + h + 20;
     pGraphics->AttachControl(new NEZButtonTimer(
-      IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "Auto Gain", style, &learnButtonBitmap));
+      IRECT(x, y, x + w, y + h), ClickCallback, TimeoutCallback, 10000, "AUTO GAIN", style, &learnButtonBitmap));
 
     // IR
     w = 40;

@@ -75,9 +75,9 @@
 #define LEARN_BUTTON2X_FN "learn_button@2x.png"
 #define LEARN_BUTTON3X_FN "learn_button@3x.png"
 
-#define BACKGROUND_FN "Background.jpg"
-#define BACKGROUND2X_FN "Background@2x.jpg"
-#define BACKGROUND3X_FN "Background@3x.jpg"
+#define BACKGROUND_FN "Background.png"
+#define BACKGROUND2X_FN "Background@2x.png"
+#define BACKGROUND3X_FN "Background@3x.png"
 #define KNOBBACKGROUND_FN "KnobBackground.png"
 #define KNOBBACKGROUND2X_FN "KnobBackground@2x.png"
 #define KNOBBACKGROUND3X_FN "KnobBackground@3x.png"
