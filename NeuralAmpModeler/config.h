@@ -1,15 +1,15 @@
 #define PLUG_NAME "Modern Metal"
-#define PLUG_MFR "NamePending"
+#define PLUG_MFR "Wide Fox"
 #define PLUG_VERSION_HEX 0x00000709
 #define PLUG_VERSION_STR "0.0.0"
 #define PLUG_UNIQUE_ID '1YEo'
-#define PLUG_MFR_ID 'NaPd'
+#define PLUG_MFR_ID 'WFmm'
 #define PLUG_URL_STR "https://github.com/nezvers"
 #define PLUG_EMAIL_STR "spam@me.com"
-#define PLUG_COPYRIGHT_STR "Copyright 2024 NamePending"
+#define PLUG_COPYRIGHT_STR "Copyright 2024 Wide Fox"
 #define PLUG_CLASS_NAME NeuralAmpModeler
 #define BUNDLE_NAME "Modern Metal"
-#define BUNDLE_MFR "NamePending"
+#define BUNDLE_MFR "Wide Fox"
 #define BUNDLE_DOMAIN "com"
 
 #define SHARED_RESOURCES_SUBPATH "NeuralAmpModeler"
@@ -43,8 +43,8 @@
 
 #define AAX_TYPE_IDS 'ITP1'
 #define AAX_TYPE_IDS_AUDIOSUITE 'ITA1'
-#define AAX_PLUG_MFR_STR "Acme"
-#define AAX_PLUG_NAME_STR "NeuralAmpModeler\nIPEF"
+#define AAX_PLUG_MFR_STR "Wide Fox"
+#define AAX_PLUG_NAME_STR "ModernMetal\nIPEF"
 #define AAX_PLUG_CATEGORY_STR "Effect"
 #define AAX_DOES_AUDIOSUITE 1
 

@@ -41,6 +41,16 @@ public:
 
   void Draw(IGraphics& g) override { 
     g.DrawFittedBitmap(mBitmap, GetRECT());
+
+    /*
+    if (mMouseIsOver) {
+      g.FillEllipse(GetColor(kFG).WithContrast(0.1f), rect.GetPadded(-2.0f), &blend);
+    }
+    else {
+      g.FillEllipse(GetColor(kFG), rect.GetPadded(-2.0f), &blend);
+    }
+    */
+
     DrawLabel(g);
   }
 

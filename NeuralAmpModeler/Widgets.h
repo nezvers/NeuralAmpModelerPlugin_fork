@@ -165,7 +165,7 @@ public:
 
   void DrawBackground(IGraphics& g, const IRECT& r) override {
     IRECT rect;
-    const IColor colorBackground = COLOR_BLACK.WithOpacity(0.5f);
+    const IColor colorBackground = IColor(255, 60, 60, 60);
     if (mDirection == EDirection::Vertical)
     {
       rect = r.GetMidHPadded(KLineThickness); // line thickness
@@ -231,7 +231,7 @@ public:
     rect = rect.GetPadded(-2.0f);
     
     const IBlend blend = mControl->GetBlend();
-    const IColor colorBackground = COLOR_BLACK.WithOpacity(0.5f);
+    const IColor colorBackground = IColor(255, 60, 60, 60);
 
      g.FillEllipse(colorBackground, rect /*, &blend*/);
 

@@ -340,8 +340,10 @@
     <ClInclude Include="..\AudioDSPTools\dsp\ResamplingContainer\ResamplingContainer.h" />
     <ClInclude Include="..\AudioDSPTools\dsp\version.h" />
     <ClInclude Include="..\AudioDSPTools\dsp\wav.h" />
+    <ClInclude Include="..\Caption.h" />
     <ClInclude Include="..\Colors.h" />
     <ClInclude Include="..\conversion_math.h" />
+    <ClInclude Include="..\CustomButton.h" />
     <ClInclude Include="..\NeuralAmpModeler.h" />
     <ClInclude Include="..\NeuralAmpModelerControls.h" />
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\activations.h" />
@@ -351,10 +353,13 @@
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\util.h" />
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\version.h" />
     <ClInclude Include="..\NeuralAmpModelerCore\NAM\wavenet.h" />
+    <ClInclude Include="..\PresetMenuDropdown.h" />
     <ClInclude Include="..\rectal57.h" />
     <ClInclude Include="..\resources\resource.h" />
+    <ClInclude Include="..\Rotary.h" />
     <ClInclude Include="..\ToneStack.h" />
     <ClInclude Include="..\wav_parser.h" />
+    <ClInclude Include="..\Widgets.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\iPlug2\Dependencies\IPlug\VST3_SDK\base\source\baseiids.cpp" />
@@ -420,6 +425,7 @@
     <ClCompile Include="..\AudioDSPTools\dsp\NoiseGate.cpp" />
     <ClCompile Include="..\AudioDSPTools\dsp\RecursiveLinearFilter.cpp" />
     <ClCompile Include="..\AudioDSPTools\dsp\wav.cpp" />
+    <ClCompile Include="..\Caption.cpp" />
     <ClCompile Include="..\NeuralAmpModeler.cpp" />
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\activations.cpp" />
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\convnet.cpp" />
@@ -436,8 +442,10 @@
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\util.cpp" />
     <ClCompile Include="..\NeuralAmpModelerCore\NAM\wavenet.cpp" />
     <ClCompile Include="..\rectal57.cpp" />
+    <ClCompile Include="..\Rotary.cpp" />
     <ClCompile Include="..\ToneStack.cpp" />
     <ClCompile Include="..\wav_parser.cpp" />
+    <ClCompile Include="..\Widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\main.rc" />
