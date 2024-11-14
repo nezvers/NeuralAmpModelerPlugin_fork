@@ -226,7 +226,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
   GetParam(kOutNorm)->InitBool("OutNorm", true);
   GetParam(kIRToggle)->InitBool("IRToggle", true);
   GetParam(kModelIndex)->InitEnum("Model Index", 0, kModelCount, "", 0, "", MODEL_NAMES);
-  GetParam(kPeakTargetDb)->InitGain("DI Peak Target", -3.0, -60.0, 0.0, 0.1);
+  GetParam(kPeakTargetDb)->InitGain("DI Peak Target", -5.0, -60.0, 0.0, 0.1);
   GetParam(kPeakMinDb)->InitGain("DI Learn Min", -30.0, -60.0, 0.0, 0.1);
   GetParam(kPeakCompensation)->InitDouble("DI Compensation", 1.0, 0.0001, 1000.0, 0.1);
 
