@@ -173,9 +173,9 @@
     <ClCompile Include="..\ToneStack.cpp" />
     <ClCompile Include="..\wav_parser.cpp" />
     <ClCompile Include="..\rectal57.cpp" />
-    <ClCompile Include="..\Widgets.cpp" />
     <ClCompile Include="..\Rotary.cpp" />
     <ClCompile Include="..\Caption.cpp" />
+    <ClCompile Include="..\Widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../config.h" />
@@ -468,11 +468,11 @@
     <ClInclude Include="..\wav_parser.h" />
     <ClInclude Include="..\rectal57.h" />
     <ClInclude Include="..\conversion_math.h" />
-    <ClInclude Include="..\Widgets.h" />
     <ClInclude Include="..\Rotary.h" />
     <ClInclude Include="..\PresetMenuDropdown.h" />
     <ClInclude Include="..\CustomButton.h" />
     <ClInclude Include="..\Caption.h" />
+    <ClInclude Include="..\Widgets.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="resources">

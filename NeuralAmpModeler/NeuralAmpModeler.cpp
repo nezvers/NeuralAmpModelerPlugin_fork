@@ -255,16 +255,19 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
     pGraphics->LoadFont("Michroma-Regular", MICHROMA_FN);
 
-    const auto helpSVG = pGraphics->LoadSVG(HELP_FN);
+    //const auto helpSVG = pGraphics->LoadSVG(HELP_FN);
     const auto irButtonOnBitmap = pGraphics->LoadBitmap(IR_BUTTON_ON_FN);
     const auto irButtonOffBitmap = pGraphics->LoadBitmap(IR_BUTTON_OFF_FN);
     const auto learnButtonBitmap = pGraphics->LoadBitmap(LEARN_BUTTON_FN);
+    const auto logoDarkPng = pGraphics->LoadBitmap(LOGO_DARK_FN);
 
     const auto backgroundBitmap = pGraphics->LoadBitmap(BACKGROUND_FN);
     const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOBBACKGROUND_FN);
 
     const auto b = pGraphics->GetBounds();
 
+    // NOTE: Double check that all source files are referenced in VS project folder
+    // NOTE: class is ambiguous because ...
 
     // Learn Button
     std::function<void(IControl*)> ClickCallback = [&](IControl* iControl) {
@@ -299,7 +302,7 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     knobStyle.showLabel = false;
     pGraphics->AttachControl(
       new BitmapKnob(IRECT(x, y, x + w, y + h), kInputLevel, "", knobStyle, knobBackgroundBitmap));
-    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "GAIN", labelStyle));
+    pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "DRIVE", labelStyle));
 
     // PROFILE
     w = 150;
@@ -341,6 +344,13 @@ NeuralAmpModeler::NeuralAmpModeler(const InstanceInfo& info)
     x = x - w;
     y = y;
     pGraphics->AttachControl(new IVLabelControl(IRECT(x, y, x + w, y + h), "OUT", sliderStyle));
+
+    w = 47;
+    h = 47;
+    x = 20;
+    y = b.H() - h - 3;
+    pGraphics->AttachControl(new BitmapControl(IRECT(x, y, x + w, y + h), logoDarkPng));
+    
 
     /*
     // Help/about box

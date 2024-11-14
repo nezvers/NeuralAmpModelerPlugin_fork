@@ -74,7 +74,8 @@
 #define LEARN_BUTTON_FN "learn_button.png"
 #define LEARN_BUTTON2X_FN "learn_button@2x.png"
 #define LEARN_BUTTON3X_FN "learn_button@3x.png"
-#define LOGO_DARK_FN "WideFoxDark.svg"
+#define LOGO_DARK_FN "WideFoxDark.png"
+#define LOGO_DARK2X_FN "WideFoxDark@2x.png"
 
 #define BACKGROUND_FN "Background.png"
 #define BACKGROUND2X_FN "Background@2x.png"

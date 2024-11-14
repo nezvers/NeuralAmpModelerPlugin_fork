@@ -96,10 +96,25 @@ protected:
   IBitmap mBitmap_off;
 };
 
+class BitmapControl : public IControl, public IBitmapBase
+{
+public:
+  BitmapControl(const IRECT& bounds, const IBitmap& bitmap)
+  : IControl(bounds), IBitmapBase(bitmap)
+  {
+  }
+  void OnRescale() override { mBitmap = GetUI()->GetScaledBitmap(mBitmap); }
+
+  void Draw(IGraphics& g) override
+  { 
+    g.DrawFittedBitmap(mBitmap, GetRECT());
+  }
+};
+
 class BitmapKnob : public IVKnobControl, public IBitmapBase
 {
 public:
-  BitmapKnob(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style, IBitmap bitmap)
+  BitmapKnob(const IRECT& bounds, int paramIdx, const char* label, const IVStyle& style, const IBitmap& bitmap)
   : IVKnobControl(bounds, paramIdx, label, style, true)
   , IBitmapBase(bitmap)
   {
