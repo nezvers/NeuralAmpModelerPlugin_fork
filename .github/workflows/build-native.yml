@@ -10,7 +10,7 @@ on:
     #   - "v*"
 
 env:
-  PROJECT_NAME: NeuralAmpModeler
+  PROJECT_NAME: ModernMetal
 
 jobs:
   build:

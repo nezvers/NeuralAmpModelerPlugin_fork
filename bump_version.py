@@ -7,7 +7,7 @@ import os, sys, shutil, subprocess, glob, fileinput, string
 import semver
 
 IPLUG2_ROOT = "iPlug2"
-PROJECT_ROOT = "NeuralAmpModeler"
+PROJECT_ROOT = "ModernMetal"
 PROJECT_SCRIPTS = os.path.join(PROJECT_ROOT, "scripts")
 
 

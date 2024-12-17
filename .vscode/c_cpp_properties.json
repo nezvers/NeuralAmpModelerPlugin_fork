@@ -1,8 +1,8 @@
 {
     "env": {
         "commonIncludePaths": [
-            "${workspaceFolder}/NeuralAmpModeler/.",
-            "${workspaceFolder}/NeuralAmpModeler/**",
+            "${workspaceFolder}/ModernMetal/.",
+            "${workspaceFolder}/ModernMetal/**",
             "${workspaceFolder}/iPlug2/WDL/**",
             "${workspaceFolder}/iPlug2/IPlug/**",
             "${workspaceFolder}/iPlug2/IGraphics/**",
