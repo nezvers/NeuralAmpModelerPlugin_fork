@@ -11,5 +11,5 @@ build-*
 *.pem
 mkcert*
 
-NeuralAmpModeler/*.wav
-NeuralAmpModeler/peaks/
+ModernMetal/*.wav
+ModernMetal/peaks/

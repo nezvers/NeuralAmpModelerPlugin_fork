@@ -7,7 +7,7 @@ on:
       - "v*"
 
 env:
-  PROJECT_NAME: NeuralAmpModeler
+  PROJECT_NAME: ModernMetal
 
 jobs:
   create_release:
