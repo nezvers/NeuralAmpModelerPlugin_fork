@@ -170,7 +170,7 @@ def main():
         auv3["CFBundlePackageType"] = "XPC!"
         auv3["NSExtension"] = dict(
             NSExtensionAttributes=dict(
-                AudioComponentBundle="com.StevenAtkinson.app."
+                AudioComponentBundle="com.WideFox.app."
                 + config["BUNDLE_NAME"]
                 + ".AUv3Framework",
                 AudioComponents=[{}],

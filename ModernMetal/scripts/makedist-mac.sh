@@ -21,8 +21,8 @@ SCRIPTS=$IPLUG2_ROOT/Scripts
 CODESIGN=0
 
 # macOS codesigning/notarization
-NOTARIZE_BUNDLE_ID=com.StevenAtkinson.ModernMetal
-NOTARIZE_BUNDLE_ID_DEMO=com.StevenAtkinson.ModernMetal.DEMO
+NOTARIZE_BUNDLE_ID=com.WideFox.ModernMetal
+NOTARIZE_BUNDLE_ID_DEMO=com.WideFox.ModernMetal.DEMO
 APP_SPECIFIC_ID=TODO
 APP_SPECIFIC_PWD=TODO
 
