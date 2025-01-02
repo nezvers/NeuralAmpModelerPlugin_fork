@@ -1,7 +1,7 @@
 #define PLUG_NAME "ModernMetal"
 #define PLUG_MFR "Wide Fox"
-#define PLUG_VERSION_HEX 0x00000000
-#define PLUG_VERSION_STR "0.0.00"
+#define PLUG_VERSION_HEX 0x00010000
+#define PLUG_VERSION_STR "1.0.00"
 #define PLUG_UNIQUE_ID 'wfmm'
 #define PLUG_MFR_ID 'WiFo'
 #define PLUG_URL_STR "https://github.com/sdatkinson/ModernMetalPlugin"
