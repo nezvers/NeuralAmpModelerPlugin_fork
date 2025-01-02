@@ -5,8 +5,8 @@
 #include <utility>
 
 #include "Colors.h"
-#include "NeuralAmpModelerCore/NAM/activations.h"
-#include "NeuralAmpModelerCore/NAM/get_dsp.h"
+#include "ModernMetalCore/NAM/activations.h"
+#include "ModernMetalCore/NAM/get_dsp.h"
 // clang-format off
 // These includes need to happen in this order or else the latter won't know
 // a bunch of stuff.
@@ -16,6 +16,16 @@
 #include "architecture.hpp"
 
 #include "ModernMetalControls.h"
+
+// <-- NeZvers
+#include "ui_elements.h"
+#include <ModernMetalCore/NAM/lstm.h>
+#include <ModernMetalCore/NAM/wavenet.h>
+#include "mmfat_nam.h"
+#include "mmtight_nam.h"
+#include "rectal57.h"
+const char* nam_list[] = {mmfat_nam, mmtight_nam};
+// <--
 
 using namespace iplug;
 using namespace igraphics;
@@ -30,7 +40,7 @@ const IVColorSpec colorSpec{
   PluginColors::NAM_THEMECOLOR.WithOpacity(0.4f), // Frame
   PluginColors::MOUSEOVER, // Highlight
   DEFAULT_SHCOLOR, // Shadow
-  PluginColors::NAM_THEMECOLOR, // Extra 1
+  IColor(255, 240, 40, 20), // Extra 1
   COLOR_RED, // Extra 2 --> color for clipping in meters
   PluginColors::NAM_THEMECOLOR.WithContrast(0.1f), // Extra 3
 };
@@ -70,14 +80,175 @@ EMsgBoxResult _ShowMessageBox(iplug::igraphics::IGraphics* pGraphics, const char
 }
 
 const std::string kCalibrateInputParamName = "CalibrateInput";
-const bool kDefaultCalibrateInput = false;
 const std::string kInputCalibrationLevelParamName = "InputCalibrationLevel";
 const double kDefaultInputCalibrationLevel = 12.0;
+const bool kDefaultCalibrateInput = false;
+
+// <-- NeZvers
+std::vector<float> GetWeights(nlohmann::json const& j)
+{
+  if (j.find("weights") != j.end())
+  {
+    auto weight_list = j["weights"];
+    std::vector<float> weights;
+    for (auto it = weight_list.begin(); it != weight_list.end(); ++it)
+      weights.push_back(*it);
+    return weights;
+  }
+  else
+    throw std::runtime_error("Corrupted model file is missing weights.");
+}
+
+std::unique_ptr<nam::DSP> get_dsp_json(const char* jsonStr)
+{
+  nlohmann::json j = nlohmann::json::parse(jsonStr);
+  nam::verify_config_version(j["version"]);
+
+  auto architecture = j["architecture"];
+  std::vector<float> weights = GetWeights(j);
+
+  // Assign values to config
+  nam::dspData config;
+  config.version = j["version"];
+  config.architecture = j["architecture"];
+  config.config = j["config"];
+  config.metadata = j["metadata"];
+  config.weights = weights;
+  if (j.find("sample_rate") != j.end())
+    config.expected_sample_rate = j["sample_rate"];
+  else
+  {
+    config.expected_sample_rate = -1.0;
+  }
+
+  /*Copy to a new dsp_config object for GetDSP below,
+   since not sure if weights actually get modified as being non-const references on some
+   model constructors inside GetDSP(dsp_config& conf).
+   We need to return unmodified version of dsp_config via returnedConfig.*/
+  nam::dspData conf = config;
+
+  return get_dsp(conf);
+}
+
+int ModernMetal::_StageModelCustom(int modelIndex)
+{
+  try
+  {
+
+    std::unique_ptr<nam::DSP> model = get_dsp_json(nam_list[modelIndex]);
+    std::unique_ptr<ResamplingNAM> temp = std::make_unique<ResamplingNAM>(std::move(model), GetSampleRate());
+    temp->Reset(GetSampleRate(), GetBlockSize());
+    mStagedModel = std::move(temp);
+    // SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
+  }
+  catch (std::runtime_error& e)
+  {
+    // SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadFailed);
+
+    if (mStagedModel != nullptr)
+    {
+      mStagedModel = nullptr;
+    }
+    std::cerr << "Failed to read DSP module" << std::endl;
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
+  return 0;
+}
+
+dsp::wav::LoadReturnCode ModernMetal::_StageIRCustom(bool enabled)
+{
+  if (!enabled)
+  {
+    return dsp::wav::LoadReturnCode::ERROR_OTHER;
+  }
+  // FIXME it'd be better for the path to be "staged" as well. Just in case the
+  // path and the model got caught on opposite sides of the fence...
+  dsp::wav::LoadReturnCode wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
+  try
+  {
+    if (mStagedIR != nullptr)
+    {
+      wavState = dsp::wav::LoadReturnCode::SUCCESS;
+    }
+    else
+    {
+      dsp::ImpulseResponse::IRData irData;
+      irData.mRawAudio = IrRawAudio;
+      irData.mRawAudioSampleRate = IrWavFileData.header.sample_rate;
+
+      const double sampleRate = GetSampleRate();
+      mStagedIR = std::make_unique<dsp::ImpulseResponse>(irData, sampleRate); // <- Localize
+      wavState = mStagedIR->GetWavState();
+      std::cerr << "Successful load IR:" << std::endl;
+    }
+  }
+  catch (std::runtime_error& e)
+  {
+    wavState = dsp::wav::LoadReturnCode::ERROR_OTHER;
+    std::cerr << "Caught unhandled exception while attempting to load IR:" << std::endl;
+    std::cerr << e.what() << std::endl;
+  }
+
+  if (wavState == dsp::wav::LoadReturnCode::SUCCESS)
+  {
+    // SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadedIR, mIRPath.GetLength(), mIRPath.Get());
+  }
+  else
+  {
+    if (mStagedIR != nullptr)
+    {
+      mStagedIR = nullptr;
+    }
+    // SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadFailed);
+  }
+
+  return wavState;
+}
+
+void ModernMetal::_UpdateCompensation()
+{
+  const iplug::sample peakTargetDb = -5.0;
+  const iplug::sample peakMinDb = -40.0;
+  iplug::sample peakMaxDb = 10.0 * log10((double)peakMax);
+  if (peakMaxDb < peakMinDb)
+  {
+    // RESET
+    peakMax = -120.0;
+    GetParam(kInputCalibrationLevel)->Set(1.0);
+    SendParameterValueFromDelegate(kInputCalibrationLevel, 1.0, false);
+    DirtyParametersFromUI();
+    return;
+  }
+
+  iplug::sample peakTarget = std::pow(10.0, 0.05 * peakTargetDb);
+  iplug::sample value = peakTarget / peakMax;
+  GetParam(kInputCalibrationLevel)->Set(value);
+  SendParameterValueFromDelegate(kInputCalibrationLevel, value, false);
+  DirtyParametersFromUI(); // updates the host with the new parameter values
+}
+
+void ModernMetal::_SkinSwitch() {
+  LayoutUI(GetUI());
+  //GetUI()->SetAllControlsDirty();
+  SendControlValueFromDelegate(kCtrlTagInput, GetParam(kInputLevel)->GetNormalized());
+  SendControlValueFromDelegate(kCtrlTagOutput, GetParam(kOutputLevel)->GetNormalized());
+  SendControlValueFromDelegate(kCtrlTagGate, GetParam(kNoiseGateThreshold)->GetNormalized());
+  SendControlValueFromDelegate(kCtrlTagProfile, GetParam(kModelIndex)->GetNormalized());
+  SendControlValueFromDelegate(kCtrlTagIr, GetParam(kIRToggle)->GetNormalized());
+  SendControlValueFromDelegate(kCtrlTagCalibrateInput, GetParam(kCalibrateInput)->GetNormalized());
+}
+  // <--
 
 
 ModernMetal::ModernMetal(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
+  // <-- NeZvers
+  // Need to be initialized before changing parameters
+  IrWavFileData = WAV_ParseFileData(RECTAL57);
+  IrRawAudio = WAV_ExtractSamples(IrWavFileData);
+  // <--
   _InitToneStack();
   nam::activations::Activation::enable_fast_tanh();
   GetParam(kInputLevel)->InitGain("Input", 0.0, -20.0, 20.0, 0.1);
@@ -90,9 +261,13 @@ ModernMetal::ModernMetal(const InstanceInfo& info)
   GetParam(kEQActive)->InitBool("ToneStack", true);
   GetParam(kOutputMode)->InitEnum("OutputMode", 1, {"Raw", "Normalized", "Calibrated"}); // TODO DRY w/ control
   GetParam(kIRToggle)->InitBool("IRToggle", true);
-  GetParam(kCalibrateInput)->InitBool(kCalibrateInputParamName.c_str(), kDefaultCalibrateInput);
+  GetParam(kCalibrateInput)->InitBool("CalibrateInput", false);
+  GetParam(kDarkMode)->InitBool("DarkMode", false);
   GetParam(kInputCalibrationLevel)
-    ->InitDouble(kInputCalibrationLevelParamName.c_str(), kDefaultInputCalibrationLevel, -60.0, 60.0, 0.1, "dBu");
+    ->InitDouble("InputCalibrationLevel", 1.0, 0.0, 150.0, 0.1, "");
+  // <-- NeZvers
+  GetParam(kModelIndex)->InitEnum("Model Index", 0, kModelCount, "", 0, "", MODEL_NAMES);
+  // <--
 
   mNoiseGateTrigger.AddListener(&mNoiseGateGain);
 
@@ -107,172 +282,187 @@ ModernMetal::ModernMetal(const InstanceInfo& info)
     return MakeGraphics(*this, PLUG_WIDTH, PLUG_HEIGHT, PLUG_FPS, scaleFactor);
   };
 
+  
+
   mLayoutFunc = [&](IGraphics* pGraphics) {
+    // Learn Button click
+    std::function<void(IControl*)> ClickCallback = [&](IControl* iControl) {
+      mLearnInput = true;
+      peakMax = -120.0;
+      GetParam(kInputCalibrationLevel)->Set(1.0);
+      SendParameterValueFromDelegate(kInputCalibrationLevel, 1.0, false);
+      peakMax = 0.0;
+    };
+    // Learn button timeout
+    std::function<void(IControl*)> TimeoutCallback = [&](IControl* iControl) {
+      GetParam(kCalibrateInput)->Set(false);
+      SendParameterValueFromDelegate(kCalibrateInput, 0.0, true);
+      mLearnInput = false;
+      _UpdateCompensation();      
+    };
+    std::function<void(IControl*)> darkModeCallback = [&](IControl* iControl) {
+      bool isDarkmode = GetParam(kDarkMode)->Bool();
+      GetParam(kDarkMode)->Set(!isDarkmode);
+      SendParameterValueFromDelegate(kDarkMode, !isDarkmode, false);
+      this->_SkinSwitch();
+    };
+
+    if (pGraphics->NControls())
+    {
+      pGraphics->RemoveAllControls();
+    }
+
     pGraphics->AttachCornerResizer(EUIResizerMode::Scale, false);
     pGraphics->AttachTextEntryControl();
     pGraphics->EnableMouseOver(true);
     pGraphics->EnableTooltips(true);
     pGraphics->EnableMultiTouch(true);
 
-    pGraphics->LoadFont("Roboto-Regular", ROBOTO_FN);
-    pGraphics->LoadFont("Michroma-Regular", MICHROMA_FN);
+    const char* profileFont = "PlusJakartaSans-Bold";
+    pGraphics->LoadFont(profileFont, JAKARTA_FN);
 
-    const auto gearSVG = pGraphics->LoadSVG(GEAR_FN);
-    const auto fileSVG = pGraphics->LoadSVG(FILE_FN);
-    const auto crossSVG = pGraphics->LoadSVG(CLOSE_BUTTON_FN);
-    const auto rightArrowSVG = pGraphics->LoadSVG(RIGHT_ARROW_FN);
-    const auto leftArrowSVG = pGraphics->LoadSVG(LEFT_ARROW_FN);
-    const auto modelIconSVG = pGraphics->LoadSVG(MODEL_ICON_FN);
-    const auto irIconOnSVG = pGraphics->LoadSVG(IR_ICON_ON_FN);
-    const auto irIconOffSVG = pGraphics->LoadSVG(IR_ICON_OFF_FN);
+    IBitmap bigKnobBitmap;
+    IBitmap knobBitmap;
+    IBitmap dotBitmap_on;
+    IBitmap dotBitmap_off;
+    IBitmap profileBitmap;
+    IBitmap triangleBitmap;
+    IBitmap irButtonOnBitmap;
+    IBitmap irButtonOffBitmap;
+    IBitmap listeningBitmap;
+    IBitmap logoBitmap;
+    IBitmap logoHoverBitmap;
+    IBitmap calibrateOnBitmap;
+    IBitmap calibrateOffBitmap;
 
-    const auto backgroundBitmap = pGraphics->LoadBitmap(BACKGROUND_FN);
-    const auto fileBackgroundBitmap = pGraphics->LoadBitmap(FILEBACKGROUND_FN);
-    const auto inputLevelBackgroundBitmap = pGraphics->LoadBitmap(INPUTLEVELBACKGROUND_FN);
-    const auto linesBitmap = pGraphics->LoadBitmap(LINES_FN);
-    const auto knobBackgroundBitmap = pGraphics->LoadBitmap(KNOBBACKGROUND_FN);
-    const auto switchHandleBitmap = pGraphics->LoadBitmap(SLIDESWITCHHANDLE_FN);
-    const auto meterBackgroundBitmap = pGraphics->LoadBitmap(METERBACKGROUND_FN);
+    bool isDarkmode = GetParam(kDarkMode)->Bool();
+    if (isDarkmode)
+    {
+      pGraphics->AttachBackground(BACKGROUND_DARK_FN); // Actual background
+      bigKnobBitmap = pGraphics->LoadBitmap(BIGKNOB_DARK_FN, 1, false, 1);
+      knobBitmap = pGraphics->LoadBitmap(SMALLKNOB_DARK_FN, 1, false, 1);
+      dotBitmap_on = pGraphics->LoadBitmap(PUMPA_ON_DARK_FN, 1, false, 1);
+      dotBitmap_off = pGraphics->LoadBitmap(PUMPA_OFF_DARK_FN, 1, false, 1);
+      profileBitmap = pGraphics->LoadBitmap(EKRANS_FN, 1, false, 1);
+      triangleBitmap = pGraphics->LoadBitmap(BULTA_FN, 1, false, 1);
+      irButtonOnBitmap = pGraphics->LoadBitmap(BUTTON_PRESS_DARK_FN, 1, false, 1);
+      irButtonOffBitmap = pGraphics->LoadBitmap(BUTTON_DARK_FN, 1, false, 1);
+      listeningBitmap = pGraphics->LoadBitmap(LISTENING_DARK_FN, 2, true, 1);
+      logoBitmap = pGraphics->LoadBitmap(LOGO_DARK_FN, 1, false, 1);
+      logoHoverBitmap = pGraphics->LoadBitmap(LOGO_HOVER_DARK_FN, 1, false, 1);
+      calibrateOnBitmap = irButtonOnBitmap;
+      calibrateOffBitmap = irButtonOffBitmap;
+    }
+    else
+    {
+      pGraphics->AttachBackground(BACKGROUND_LIGHT_FN); // Actual background
+      bigKnobBitmap = pGraphics->LoadBitmap(BIGKNOB_LIGHT_FN, 1, false, 1);
+      knobBitmap = pGraphics->LoadBitmap(SMALLKNOB_LIGHT_FN, 1, false, 1);
+      dotBitmap_on = pGraphics->LoadBitmap(PUMPA_ON_LIGHT_FN, 1, false, 1);
+      dotBitmap_off = pGraphics->LoadBitmap(PUMPA_OFF_LIGHT_FN, 1, false, 1);
+      profileBitmap = pGraphics->LoadBitmap(EKRANS_FN, 1, false, 1);
+      triangleBitmap = pGraphics->LoadBitmap(BULTA_FN, 1, false, 1);
+      irButtonOnBitmap = pGraphics->LoadBitmap(BUTTON_PRESS_LIGHT_FN, 1, false, 1);
+      irButtonOffBitmap = pGraphics->LoadBitmap(BUTTON_LIGHT_FN, 1, false, 1);
+      listeningBitmap = pGraphics->LoadBitmap(LISTENING_LIGHT_FN, 2, true, 1);
+      logoBitmap = pGraphics->LoadBitmap(LOGO_LIGHT_FN, 1, false, 1);
+      logoHoverBitmap = pGraphics->LoadBitmap(LOGO_HOVER_LIGHT_FN, 1, false, 1);
+      calibrateOnBitmap = irButtonOnBitmap;
+      calibrateOffBitmap = irButtonOffBitmap;
+    }
+
 
     const auto b = pGraphics->GetBounds();
-    const auto mainArea = b.GetPadded(-20);
-    const auto contentArea = mainArea.GetPadded(-10);
-    const auto titleHeight = 50.0f;
-    const auto titleArea = contentArea.GetFromTop(titleHeight);
+    const IRECT dotRect = IRECT(0, 0, 9, 9);
 
-    // Areas for knobs
-    const auto knobsPad = 20.0f;
-    const auto knobsExtraSpaceBelowTitle = 25.0f;
-    const auto singleKnobPad = -2.0f;
-    const auto knobsArea = contentArea.GetFromTop(NAM_KNOB_HEIGHT)
-                             .GetReducedFromLeft(knobsPad)
-                             .GetReducedFromRight(knobsPad)
-                             .GetVShifted(titleHeight + knobsExtraSpaceBelowTitle);
-    const auto inputKnobArea = knobsArea.GetGridCell(0, kInputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto noiseGateArea = knobsArea.GetGridCell(0, kNoiseGateThreshold, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto bassKnobArea = knobsArea.GetGridCell(0, kToneBass, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto midKnobArea = knobsArea.GetGridCell(0, kToneMid, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto trebleKnobArea = knobsArea.GetGridCell(0, kToneTreble, 1, numKnobs).GetPadded(-singleKnobPad);
-    const auto outputKnobArea = knobsArea.GetGridCell(0, kOutputLevel, 1, numKnobs).GetPadded(-singleKnobPad);
 
-    const auto ngToggleArea =
-      noiseGateArea.GetVShifted(noiseGateArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-    const auto eqToggleArea = midKnobArea.GetVShifted(midKnobArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
-    const auto outNormToggleArea =
-      outputKnobArea.GetVShifted(midKnobArea.H()).SubRectVertical(2, 0).GetReducedFromTop(10.0f);
+    float x = 20;
+    float y = 55;
+    float w = 260;
+    float h = 260;
+    float angleMin = -149.0f;
+    float angleMax = 149.0f;
 
-    // Areas for model and IR
-    const auto fileWidth = 200.0f;
-    const auto fileHeight = 30.0f;
-    const auto irYOffset = 38.0f;
-    const auto modelArea =
-      contentArea.GetFromBottom((2.0f * fileHeight)).GetFromTop(fileHeight).GetMidHPadded(fileWidth).GetVShifted(-1);
-    const auto modelIconArea = modelArea.GetFromLeft(30).GetTranslated(-40, 10);
-    const auto irArea = modelArea.GetVShifted(irYOffset);
-    const auto irSwitchArea = irArea.GetFromLeft(30.0f).GetHShifted(-40.0f).GetScaledAboutCentre(0.6f);
+    IVStyle knobStyle = style;
+    knobStyle.showValue = false;
+    knobStyle.showLabel = false;
+    pGraphics->AttachControl(new BitmapKnob(IRECT(x, y, x + w, y + h), kInputLevel, "", knobStyle, bigKnobBitmap, 88.f,
+                                            3.9f, angleMin, angleMax, dotBitmap_on, dotRect, 60.f),
+                             kCtrlTagInput);
 
-    // Areas for meters
-    const auto inputMeterArea = contentArea.GetFromLeft(30).GetHShifted(-20).GetMidVPadded(100).GetVShifted(-25);
-    const auto outputMeterArea = contentArea.GetFromRight(30).GetHShifted(20).GetMidVPadded(100).GetVShifted(-25);
-
-    // Misc Areas
-    const auto settingsButtonArea = CornerButtonArea(b);
-
-    // Model loader button
-    auto loadModelCompletionHandler = [&](const WDL_String& fileName, const WDL_String& path) {
-      if (fileName.GetLength())
-      {
-        // Sets mNAMPath and mStagedNAM
-        const std::string msg = _StageModel(fileName);
-        // TODO error messages like the IR loader.
-        if (msg.size())
-        {
-          std::stringstream ss;
-          ss << "Failed to load NAM model. Message:\n\n" << msg;
-          _ShowMessageBox(GetUI(), ss.str().c_str(), "Failed to load model!", kMB_OK);
-        }
-        std::cout << "Loaded: " << fileName.Get() << std::endl;
-      }
-    };
-
-    // IR loader button
-    auto loadIRCompletionHandler = [&](const WDL_String& fileName, const WDL_String& path) {
-      if (fileName.GetLength())
-      {
-        mIRPath = fileName;
-        const dsp::wav::LoadReturnCode retCode = _StageIR(fileName);
-        if (retCode != dsp::wav::LoadReturnCode::SUCCESS)
-        {
-          std::stringstream message;
-          message << "Failed to load IR file " << fileName.Get() << ":\n";
-          message << dsp::wav::GetMsgForLoadReturnCode(retCode);
-
-          _ShowMessageBox(GetUI(), message.str().c_str(), "Failed to load IR!", kMB_OK);
-        }
-      }
-    };
-
-    pGraphics->AttachBackground(BACKGROUND_FN);
-    pGraphics->AttachControl(new IBitmapControl(b, linesBitmap));
-    pGraphics->AttachControl(new IVLabelControl(titleArea, "NEURAL AMP MODELER", titleStyle));
-    pGraphics->AttachControl(new ISVGControl(modelIconArea, modelIconSVG));
-
-#ifdef NAM_PICK_DIRECTORY
-    const std::string defaultNamFileString = "Select model directory...";
-    const std::string defaultIRString = "Select IR directory...";
-#else
-    const std::string defaultNamFileString = "Select model...";
-    const std::string defaultIRString = "Select IR...";
-#endif
-    pGraphics->AttachControl(new NAMFileBrowserControl(modelArea, kMsgTagClearModel, defaultNamFileString.c_str(),
-                                                       "nam", loadModelCompletionHandler, style, fileSVG, crossSVG,
-                                                       leftArrowSVG, rightArrowSVG, fileBackgroundBitmap),
-                             kCtrlTagModelFileBrowser);
-    pGraphics->AttachControl(new ISVGSwitchControl(irSwitchArea, {irIconOffSVG, irIconOnSVG}, kIRToggle));
+    x = 238;
+    y = 23;
+    w = 38;
+    h = 48;
     pGraphics->AttachControl(
-      new NAMFileBrowserControl(irArea, kMsgTagClearIR, defaultIRString.c_str(), "wav", loadIRCompletionHandler, style,
-                                fileSVG, crossSVG, leftArrowSVG, rightArrowSVG, fileBackgroundBitmap),
-      kCtrlTagIRFileBrowser);
-    pGraphics->AttachControl(
-      new NAMSwitchControl(ngToggleArea, kNoiseGateActive, "Noise Gate", style, switchHandleBitmap));
-    pGraphics->AttachControl(new NAMSwitchControl(eqToggleArea, kEQActive, "EQ", style, switchHandleBitmap));
+      new BitmapButton(IRECT(x, y, x + w, y + h), logoBitmap, logoHoverBitmap, darkModeCallback));
 
-    // The knobs
-    pGraphics->AttachControl(new NAMKnobControl(inputKnobArea, kInputLevel, "", style, knobBackgroundBitmap));
-    pGraphics->AttachControl(new NAMKnobControl(noiseGateArea, kNoiseGateThreshold, "", style, knobBackgroundBitmap));
+    x = 74;
+    y = 311;
+    w = 85;
+    h = 85;
+    float radius = 28.0f;
+    float lineThickness = 2.9f;
+
+    pGraphics->AttachControl(new BitmapKnob(IRECT(x, y, x + w, y + h), kNoiseGateThreshold, "", knobStyle, knobBitmap,
+                                            radius, lineThickness, angleMin, angleMax, dotBitmap_on, dotRect, 12.f),
+                             kCtrlTagGate);
+
+    x = 208;
+    pGraphics->AttachControl(new BitmapKnob(IRECT(x, y, x + w, y + h), kOutputLevel, "", knobStyle, knobBitmap, radius,
+                                            lineThickness, angleMin, angleMax, dotBitmap_on, dotRect, 12.f),
+                             kCtrlTagOutput);
+    
+
+
+    x = 25;
+    y = 380;
+    w = 49;
+    h = 26;
+    pGraphics->AttachControl(
+      new IBitmapControl(IRECT(x, y, x + w, y + h), listeningBitmap, kCalibrateInput, EBlend::Default));
+
+    x = 7;
+    y = 311;
+    w = 85;
+    h = 85;
+    IRECT dotPos1 = IRECT(45, 320, 54, 329);
+    pGraphics->AttachControl(new BitmapSwitchTimer(IRECT(x, y, x + w, y + h), kCalibrateInput, calibrateOnBitmap,
+                                                   calibrateOffBitmap, dotBitmap_on, dotBitmap_off,
+                                                   dotPos1, ClickCallback,
+                                                   TimeoutCallback, 10000),
+      kCtrlTagCalibrateInput);
+    
+
+    x = 141;
+    IRECT dotPos2 = IRECT(179, 320, 188, 329);
+    pGraphics->AttachControl(new BitmapSwitch(IRECT(x, y, x + w, y + h), kIRToggle, irButtonOnBitmap, irButtonOffBitmap,
+                                              dotBitmap_on, dotBitmap_off, dotPos2),
+                             kCtrlTagIr);
+
+    x = 115;
+    y = 286;
+    w = 70;
+    h = 25;
+
+    const iplug::igraphics::IColor PROFILE_COLOR = IColor::FromColorCode(0x501414);
+    iplug::igraphics::IText PROFILE_TEXT = IText(14.f, PROFILE_COLOR, profileFont, EAlign::Center, EVAlign::Middle);
+    
+    float tX = x + 53.0f;
+    float tY = y + 11.0f;
+    float tW = 8.0f;
+    float tH = 5.0f;
+    pGraphics->AttachControl(new DropdownBitmap(IRECT(x, y, x + w, y + h), kModelIndex, PROFILE_TEXT, profileBitmap,
+                                                true, IRECT(tX, tY, tX + tW, tY + tH), triangleBitmap), kCtrlTagProfile);
+
+    /*
     pGraphics->AttachControl(
       new NAMKnobControl(bassKnobArea, kToneBass, "", style, knobBackgroundBitmap), -1, "EQ_KNOBS");
     pGraphics->AttachControl(
       new NAMKnobControl(midKnobArea, kToneMid, "", style, knobBackgroundBitmap), -1, "EQ_KNOBS");
     pGraphics->AttachControl(
       new NAMKnobControl(trebleKnobArea, kToneTreble, "", style, knobBackgroundBitmap), -1, "EQ_KNOBS");
-    pGraphics->AttachControl(new NAMKnobControl(outputKnobArea, kOutputLevel, "", style, knobBackgroundBitmap));
-
-    // The meters
-    pGraphics->AttachControl(new NAMMeterControl(inputMeterArea, meterBackgroundBitmap, style), kCtrlTagInputMeter);
-    pGraphics->AttachControl(new NAMMeterControl(outputMeterArea, meterBackgroundBitmap, style), kCtrlTagOutputMeter);
-
-    // Settings/help/about box
-    pGraphics->AttachControl(new NAMCircleButtonControl(
-      settingsButtonArea,
-      [pGraphics](IControl* pCaller) {
-        pGraphics->GetControlWithTag(kCtrlTagSettingsBox)->As<NAMSettingsPageControl>()->HideAnimated(false);
-      },
-      gearSVG));
-
-    pGraphics
-      ->AttachControl(new NAMSettingsPageControl(b, backgroundBitmap, inputLevelBackgroundBitmap, switchHandleBitmap,
-                                                 crossSVG, style, radioButtonStyle),
-                      kCtrlTagSettingsBox)
-      ->Hide(true);
-
-    pGraphics->ForAllControlsFunc([](IControl* pControl) {
-      pControl->SetMouseEventsWhenDisabled(true);
-      pControl->SetMouseOverWhenDisabled(true);
-    });
-
-    // pGraphics->GetControlWithTag(kCtrlTagOutNorm)->SetMouseEventsWhenDisabled(false);
-    // pGraphics->GetControlWithTag(kCtrlTagCalibrateInput)->SetMouseEventsWhenDisabled(false);
+    */
   };
 }
 
@@ -369,8 +559,8 @@ void ModernMetal::OnReset()
   // I'm ignoring the model & IR, but it's not the end of the world.
   const int tailCycles = 10;
   SetTailSize(tailCycles * (int)(sampleRate / kDCBlockerFrequency));
-  mInputSender.Reset(sampleRate);
-  mOutputSender.Reset(sampleRate);
+  /*mInputSender.Reset(sampleRate);
+  mOutputSender.Reset(sampleRate);*/
   // If there is a model or IR loaded, they need to be checked for resampling.
   _ResetModelAndIR(sampleRate, GetBlockSize());
   mToneStack->Reset(sampleRate, maxBlockSize);
@@ -379,8 +569,8 @@ void ModernMetal::OnReset()
 
 void ModernMetal::OnIdle()
 {
-  mInputSender.TransmitData(*this);
-  mOutputSender.TransmitData(*this);
+  /*mInputSender.TransmitData(*this);
+  mOutputSender.TransmitData(*this);*/
 
   if (mNewModelLoadedInDSP)
   {
@@ -396,7 +586,7 @@ void ModernMetal::OnIdle()
     {
       // FIXME -- need to disable only the "normalized" model
       // pGraphics->GetControlWithTag(kCtrlTagOutputMode)->SetDisabled(false);
-      static_cast<NAMSettingsPageControl*>(pGraphics->GetControlWithTag(kCtrlTagSettingsBox))->ClearModelInfo();
+      //static_cast<NAMSettingsPageControl*>(pGraphics->GetControlWithTag(kCtrlTagSettingsBox))->ClearModelInfo();
       mModelCleared = false;
     }
   }
@@ -404,56 +594,29 @@ void ModernMetal::OnIdle()
 
 bool ModernMetal::SerializeState(IByteChunk& chunk) const
 {
-  // If this isn't here when unserializing, then we know we're dealing with something before v0.8.0.
-  WDL_String header("###ModernMetal###"); // Don't change this!
-  chunk.PutStr(header.Get());
-  // Plugin version, so we can load legacy serialized states in the future!
   WDL_String version(PLUG_VERSION_STR);
   chunk.PutStr(version.Get());
-  // Model directory (don't serialize the model itself; we'll just load it again
-  // when we unserialize)
-  chunk.PutStr(mNAMPath.Get());
-  chunk.PutStr(mIRPath.Get());
+  
+  SerializeEditorState(chunk);
   return SerializeParams(chunk);
 }
 
 int ModernMetal::UnserializeState(const IByteChunk& chunk, int startPos)
 {
-  // Look for the expected header. If it's there, then we'll know what to do.
-  WDL_String header;
-  int pos = startPos;
-  pos = chunk.GetStr(header, pos);
+  WDL_String version;
+  startPos = chunk.GetStr(version, startPos);
 
-  const char* kExpectedHeader = "###ModernMetal###";
-  if (strcmp(header.Get(), kExpectedHeader) == 0)
-  {
-    return _UnserializeStateWithKnownVersion(chunk, pos);
+  startPos = UnserializeEditorState(chunk, startPos);
+  startPos = UnserializeParams(chunk, startPos);
+  if (GetParam(kIRToggle)->Bool()) {
+    _StageIRCustom((int)true);
   }
-  else
-  {
-    return _UnserializeStateWithUnknownVersion(chunk, startPos);
-  }
+  return startPos;
 }
 
 void ModernMetal::OnUIOpen()
 {
   Plugin::OnUIOpen();
-
-  if (mNAMPath.GetLength())
-  {
-    SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadedModel, mNAMPath.GetLength(), mNAMPath.Get());
-    // If it's not loaded yet, then mark as failed.
-    // If it's yet to be loaded, then the completion handler will set us straight once it runs.
-    if (mModel == nullptr && mStagedModel == nullptr)
-      SendControlMsgFromDelegate(kCtrlTagModelFileBrowser, kMsgTagLoadFailed);
-  }
-
-  if (mIRPath.GetLength())
-  {
-    SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadedIR, mIRPath.GetLength(), mIRPath.Get());
-    if (mIR == nullptr && mStagedIR == nullptr)
-      SendControlMsgFromDelegate(kCtrlTagIRFileBrowser, kMsgTagLoadFailed);
-  }
 
   if (mModel != nullptr)
   {
@@ -467,11 +630,17 @@ void ModernMetal::OnParamChange(int paramIdx)
   {
     // Changes to the input gain
     case kCalibrateInput:
+    {
+      bool active = GetParam(paramIdx)->Bool();
+      break;
+    }
     case kInputCalibrationLevel:
     case kInputLevel: _SetInputGain(); break;
     // Changes to the output gain
     case kOutputLevel:
     case kOutputMode: _SetOutputGain(); break;
+    // Change profile
+    case kModelIndex: _StageModelCustom((int)GetParam(kModelIndex)->Value()); break;
     // Tone stack:
     case kToneBass: mToneStack->SetParam("bass", GetParam(paramIdx)->Value()); break;
     case kToneMid: mToneStack->SetParam("middle", GetParam(paramIdx)->Value()); break;
@@ -484,15 +653,21 @@ void ModernMetal::OnParamChangeUI(int paramIdx, EParamSource source)
 {
   if (auto pGraphics = GetUI())
   {
-    bool active = GetParam(paramIdx)->Bool();
+    
 
+    bool active = GetParam(paramIdx)->Bool();
     switch (paramIdx)
     {
-      case kNoiseGateActive: pGraphics->GetControlWithParamIdx(kNoiseGateThreshold)->SetDisabled(!active); break;
+      case kIRToggle:
+      {
+        _StageIRCustom(active);
+        break;
+      }
+      /*case kNoiseGateActive: pGraphics->GetControlWithParamIdx(kNoiseGateThreshold)->SetDisabled(!active); break;
       case kEQActive:
         pGraphics->ForControlInGroup("EQ_KNOBS", [active](IControl* pControl) { pControl->SetDisabled(!active); });
         break;
-      case kIRToggle: pGraphics->GetControlWithTag(kCtrlTagIRFileBrowser)->SetDisabled(!active); break;
+      case kIRToggle: pGraphics->GetControlWithTag(kCtrlTagIRFileBrowser)->SetDisabled(!active); break;*/
       default: break;
     }
   }
@@ -504,7 +679,7 @@ bool ModernMetal::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* p
   {
     case kMsgTagClearModel: mShouldRemoveModel = true; return true;
     case kMsgTagClearIR: mShouldRemoveIR = true; return true;
-    case kMsgTagHighlightColor:
+    /*case kMsgTagHighlightColor:
     {
       mHighLightColor.Set((const char*)pData);
 
@@ -525,7 +700,7 @@ bool ModernMetal::OnMessage(int msgTag, int ctrlTag, int dataSize, const void* p
       }
 
       return true;
-    }
+    }*/
     default: return false;
   }
 }
@@ -641,8 +816,12 @@ void ModernMetal::_ResetModelAndIR(const double sampleRate, const int maxBlockSi
   }
 }
 
+// TODO: add compensation multiplier
 void ModernMetal::_SetInputGain()
 {
+  mInputGain = DBToAmp(GetParam(kInputLevel)->Value());
+
+  /*
   iplug::sample inputGainDB = GetParam(kInputLevel)->Value();
   // Input calibration
   if ((mModel != nullptr) && (mModel->HasInputLevel()) && GetParam(kCalibrateInput)->Bool())
@@ -650,10 +829,15 @@ void ModernMetal::_SetInputGain()
     inputGainDB += GetParam(kInputCalibrationLevel)->Value() - mModel->GetInputLevel();
   }
   mInputGain = DBToAmp(inputGainDB);
+  */
 }
 
+// TODO: bypass
 void ModernMetal::_SetOutputGain()
 {
+  mOutputGain = DBToAmp(GetParam(kOutputLevel)->Value());
+
+  /*
   double gainDB = GetParam(kOutputLevel)->Value();
   if (mModel != nullptr)
   {
@@ -681,6 +865,7 @@ void ModernMetal::_SetOutputGain()
     }
   }
   mOutputGain = DBToAmp(gainDB);
+  */
 }
 
 std::string ModernMetal::_StageModel(const WDL_String& modelPath)
@@ -807,6 +992,7 @@ void ModernMetal::_PrepareIOPointers(const size_t numChannels)
   _AllocateIOPointers(numChannels);
 }
 
+// TODO: calculate compensation
 void ModernMetal::_ProcessInput(iplug::sample** inputs, const size_t nFrames, const size_t nChansIn,
                                      const size_t nChansOut)
 {
@@ -822,17 +1008,26 @@ void ModernMetal::_ProcessInput(iplug::sample** inputs, const size_t nFrames, co
   // carried straight through. Don't apply any division over nChansIn because we're just "catching anything out there."
   // However, in a DAW, it's probably something providing stereo, and we want to take the average in order to avoid
   // doubling the loudness. (This would change w/ double mono processing)
-  double gain = mInputGain;
+  double compensationMultiplier = GetParam(kInputCalibrationLevel)->Value();
+  double gain = mInputGain * compensationMultiplier;
 #ifndef APP_API
   gain /= (float)nChansIn;
 #endif
   // Assume _PrepareBuffers() was already called
-  for (size_t c = 0; c < nChansIn; c++)
-    for (size_t s = 0; s < nFrames; s++)
-      if (c == 0)
+  for (size_t c = 0; c < nChansIn; c++) {
+    for (size_t s = 0; s < nFrames; s++) {
+      if (c == 0) {
+        if (mLearnInput) {
+          double sIn = std::abs(inputs[c][s]);
+          peakMax = std::max(peakMax, sIn);
+        }
         mInputArray[0][s] = gain * inputs[c][s];
-      else
+      }
+      else {
         mInputArray[0][s] += gain * inputs[c][s];
+      }
+    }
+  }
 }
 
 void ModernMetal::_ProcessOutput(iplug::sample** inputs, iplug::sample** outputs, const size_t nFrames,
@@ -856,6 +1051,7 @@ void ModernMetal::_ProcessOutput(iplug::sample** inputs, iplug::sample** outputs
 
 void ModernMetal::_UpdateControlsFromModel()
 {
+  /*
   if (mModel == nullptr)
   {
     return;
@@ -870,17 +1066,18 @@ void ModernMetal::_UpdateControlsFromModel()
     modelInfo.outputCalibrationLevel.known = mModel->HasOutputLevel();
     modelInfo.outputCalibrationLevel.value = mModel->HasOutputLevel() ? mModel->GetOutputLevel() : 0.0;
 
-    static_cast<NAMSettingsPageControl*>(pGraphics->GetControlWithTag(kCtrlTagSettingsBox))->SetModelInfo(modelInfo);
+    //static_cast<NAMSettingsPageControl*>(pGraphics->GetControlWithTag(kCtrlTagSettingsBox))->SetModelInfo(modelInfo);
 
-    const bool disableInputCalibrationControls = !mModel->HasInputLevel();
-    pGraphics->GetControlWithTag(kCtrlTagCalibrateInput)->SetDisabled(disableInputCalibrationControls);
-    pGraphics->GetControlWithTag(kCtrlTagInputCalibrationLevel)->SetDisabled(disableInputCalibrationControls);
+    //const bool disableInputCalibrationControls = !mModel->HasInputLevel();
+    //pGraphics->GetControlWithTag(kCtrlTagCalibrateInput)->SetDisabled(disableInputCalibrationControls);
+    //pGraphics->GetControlWithTag(kCtrlTagInputCalibrationLevel)->SetDisabled(disableInputCalibrationControls);
     {
       auto* c = static_cast<OutputModeControl*>(pGraphics->GetControlWithTag(kCtrlTagOutputMode));
       c->SetNormalizedDisable(!mModel->HasLoudness());
       c->SetCalibratedDisable(!mModel->HasOutputLevel());
     }
   }
+  */
 }
 
 void ModernMetal::_UpdateLatency()
@@ -904,8 +1101,8 @@ void ModernMetal::_UpdateMeters(sample** inputPointer, sample** outputPointer, c
 {
   // Right now, we didn't specify MAXNC when we initialized these, so it's 1.
   const int nChansHack = 1;
-  mInputSender.ProcessBlock(inputPointer, (int)nFrames, kCtrlTagInputMeter, nChansHack);
-  mOutputSender.ProcessBlock(outputPointer, (int)nFrames, kCtrlTagOutputMeter, nChansHack);
+  /*mInputSender.ProcessBlock(inputPointer, (int)nFrames, kCtrlTagInputMeter, nChansHack);
+  mOutputSender.ProcessBlock(outputPointer, (int)nFrames, kCtrlTagOutputMeter, nChansHack);*/
 }
 
 // HACK

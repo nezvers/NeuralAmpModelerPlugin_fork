@@ -134,25 +134,25 @@
     <ClCompile Include="..\..\iPlug2\IGraphics\IGraphicsEditorDelegate.cpp">
       <Filter>IGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\convnet.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\convnet.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\dsp.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\dsp.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\get_dsp.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\get_dsp.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\lstm.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\lstm.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\util.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\util.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\wavenet.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\wavenet.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
-    <ClCompile Include="..\NeuralAmpModelerCore\NAM\activations.cpp">
+    <ClCompile Include="..\ModernMetalCore\NAM\activations.cpp">
       <Filter>NAM</Filter>
     </ClCompile>
     <ClCompile Include="..\AudioDSPTools\dsp\dsp.cpp">
@@ -171,6 +171,8 @@
       <Filter>dsp</Filter>
     </ClCompile>
     <ClCompile Include="..\ToneStack.cpp" />
+    <ClCompile Include="..\rectal57.cpp" />
+    <ClCompile Include="..\wav_parser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../config.h" />
@@ -395,25 +397,25 @@
       <Filter>IGraphics</Filter>
     </ClInclude>
     <ClInclude Include="..\Colors.h" />
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\activations.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\activations.h">
       <Filter>NAM</Filter>
     </ClInclude>
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\convnet.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\convnet.h">
       <Filter>NAM</Filter>
     </ClInclude>
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\dsp.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\dsp.h">
       <Filter>NAM</Filter>
     </ClInclude>
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\lstm.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\lstm.h">
       <Filter>NAM</Filter>
     </ClInclude>
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\util.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\util.h">
       <Filter>NAM</Filter>
     </ClInclude>
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\version.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\version.h">
       <Filter>NAM</Filter>
     </ClInclude>
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\wavenet.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\wavenet.h">
       <Filter>NAM</Filter>
     </ClInclude>
     <ClInclude Include="..\ModernMetalControls.h" />
@@ -460,9 +462,14 @@
       <Filter>dsp\ResamplingContainer\Dependencies\WDL</Filter>
     </ClInclude>
     <ClInclude Include="..\ToneStack.h" />
-    <ClInclude Include="..\NeuralAmpModelerCore\NAM\get_dsp.h">
+    <ClInclude Include="..\ModernMetalCore\NAM\get_dsp.h">
       <Filter>NAM</Filter>
     </ClInclude>
+    <ClInclude Include="..\mmfat_nam.h" />
+    <ClInclude Include="..\mmtight_nam.h" />
+    <ClInclude Include="..\rectal57.h" />
+    <ClInclude Include="..\ui_elements.h" />
+    <ClInclude Include="..\wav_parser.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="resources">

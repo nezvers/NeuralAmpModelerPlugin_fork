@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NeuralAmpModelerCore/NAM/dsp.h"
+#include "ModernMetalCore/NAM/dsp.h"
 #include "AudioDSPTools/dsp/ImpulseResponse.h"
 #include "AudioDSPTools/dsp/NoiseGate.h"
 #include "AudioDSPTools/dsp/dsp.h"
@@ -12,6 +12,17 @@
 
 #include "IPlug_include_in_plug_hdr.h"
 #include "ISender.h"
+
+// <-- NeZvers
+#include "wav_parser.h"
+enum EModels
+{
+  kMMFat,
+  kMMTight,
+  kModelCount,
+};
+#define MODEL_NAMES "FAT", "TIGHT"
+// <--
 
 
 const int kNumPresets = 1;
@@ -43,8 +54,13 @@ enum EParams
   kIRToggle,
   // Input calibration
   kCalibrateInput,
+  // Changed into multiplier
   kInputCalibrationLevel,
   kOutputMode,
+  // <--
+  kModelIndex,
+  kDarkMode,
+  // <--
   kNumParams
 };
 
@@ -60,6 +76,15 @@ enum ECtrlTags
   kCtrlTagOutputMode,
   kCtrlTagCalibrateInput,
   kCtrlTagInputCalibrationLevel,
+  // <--
+  kCtrlTagInput,
+  kCtrlTagOutput,
+  kCtrlTagGate,
+  kCtrlTagProfile,
+  kCtrlTagIr,
+  kCtrlTagFat,
+  kCtrlTagTight,
+  // <--
   kNumCtrlTags
 };
 
@@ -73,6 +98,10 @@ enum EMsgTags
   kMsgTagLoadFailed,
   kMsgTagLoadedModel,
   kMsgTagLoadedIR,
+  // <--
+  kMsgTagMMFat,
+  kMsgTagMMTight,
+  // <--
   kNumMsgTags
 };
 
@@ -311,5 +340,17 @@ private:
 
   std::unordered_map<std::string, double> mNAMParams = {{"Input", 0.0}, {"Output", 0.0}};
 
-  NAMSender mInputSender, mOutputSender;
+  //NAMSender mInputSender, mOutputSender;
+
+  // <-- NeZvers
+  int _StageModelCustom(int modelIndex);
+  dsp::wav::LoadReturnCode _StageIRCustom(bool enabled);
+  void _UpdateCompensation();
+  void _SkinSwitch();
+
+  WAVFile IrWavFileData;
+  std::vector<float> IrRawAudio;
+  bool mLearnInput = false;
+  iplug::sample peakMax = -120.0;
+  // <--
 };
